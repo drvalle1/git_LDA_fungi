@@ -35,8 +35,8 @@ write.csv(theta,nome,row.names=F)
 
 #generate phi  
 phi=matrix(NA,ncommun,nspp)
-mu.large=4
-mu.small=-4
+mu.large=2
+mu.small=-2
 ind=matrix(rbinom(ncommun*nspp,size=1,prob=0.1),ncommun,nspp)
 for (i in 1:ncommun){
   ind1=ind[i,]

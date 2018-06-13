@@ -9,7 +9,7 @@ dat=data.matrix(read.csv('fake data5.csv',as.is=T))
 
 nloc=nrow(dat)
 nspp=ncol(dat)
-ncommun=5
+ncommun=10
 gamma=0.1
 
 #set initial values
@@ -67,11 +67,13 @@ for (i in 1:ngibbs){
 #---------------------------------------------------
 seq1=(ngibbs*0.9):ngibbs
 theta.estim=matrix(colMeans(vec.theta[seq1,]),nloc,ncommun)
-# seq.comm=1:5
-seq.comm=c(2,1,5,3,4)
+boxplot(theta.estim)
+
+seq.comm=1:5
+seq.comm=c(2,5,3,1,4)
 theta.estim1=theta.estim[,seq.comm]
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
-for (i in 1:ncommun){
+for (i in 1:5){
   lines(1:nloc,theta.estim1[,i],col=i)
 }
 
