@@ -63,5 +63,15 @@ for (i in 1:nspp){
 medias=theta%*%phi; dim(medias)
 z=matrix(rnorm(nloc*nspp,mean=medias,sd=1),nloc,nspp)
 
+#generate actual observations y
+range(z)
+break1.true=break1=c(-Inf,seq(from=-7,to=5.5,by=0.5),Inf)
+y=matrix(NA,nloc,nspp)
+for (i in 2:length(break1)){
+  cond=z>break1[i-1] & z<break1[i]  
+  y[cond]=i-2
+}
+tmp=table(y); tmp; length(tmp); length(break1)
+
 nome=paste('fake data',ncommun,'.csv',sep='')    
-write.csv(z,nome,row.names=F)    
+write.csv(y,nome,row.names=F)    

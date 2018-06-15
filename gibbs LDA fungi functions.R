@@ -38,9 +38,17 @@ acceptMH <- function(p0,p1,x0,x1,BLOCK){   #accept for M, M-H
   list(x = x0, accept = accept)
 }
 #-----------------------------------------------------------------------------------------------
-get.logl=function(theta,phi){
+get.logl=function(theta,phi,break1){
   media=theta%*%phi
-  dnorm(dat,mean=media,sd=1,log=T)
+  break2=c(-Inf,break1,Inf)
+  prob=matrix(NA,nloc,nspp)
+  for (i in 1:nuni){
+    ind=indicator[[i]]
+    media1=media[ind]
+    prob[ind]=pnorm(break2[i+1]-media1)-pnorm(break2[i]-media1)
+  }
+  prob[prob < 1e-16]=1e-16
+  log(prob)
 }
 #-----------------------------------------------------------------------------------------------
 sample.vlk=function(param,jump){
@@ -62,8 +70,8 @@ sample.vlk=function(param,jump){
     
     theta.old=convertVtoTheta(vlk.old,ones.nloc)
     theta.new=convertVtoTheta(vlk.new,ones.nloc)
-    pold=get.logl(theta.old,param$phi)
-    pnew=get.logl(theta.new,param$phi)
+    pold=get.logl(theta.old,param$phi,param$break1)
+    pnew=get.logl(theta.new,param$phi,param$break1)
     pold1=(pold%*%ones.nspp)+prior.old[,i]
     pnew1=(pnew%*%ones.nspp)+prior.new[,i]
     
@@ -89,8 +97,8 @@ sample.phi=function(param,jump){
     phi.new=phi.old
     phi.new[i,]=phi.prop[i,]
     
-    pold=get.logl(param$theta,phi.old)
-    pnew=get.logl(param$theta,phi.new)
+    pold=get.logl(param$theta,phi.old,param$break1)
+    pnew=get.logl(param$theta,phi.new,param$break1)
     pold1=(ones.nloc%*%pold)+prior.old[i,]
     pnew1=(ones.nloc%*%pnew)+prior.new[i,]
     
@@ -99,6 +107,29 @@ sample.phi=function(param,jump){
   }
   
   list(phi=phi.old,accept=phi.old!=phi.orig)
+}
+#-----------------------------------------------------------------------------------------------
+sample.break=function(param,jump){
+  break.old=break.orig=param$break1
+  media=param$theta%*%param$phi
+  
+  for (i in 1:(nuni-1)){
+    #set lower and upper bounds
+    lo1=ifelse(i==1,-Inf,break.old[i-1])
+    hi1=ifelse(i==nuni-1,Inf,break.old[i+1])
+
+    #generate break.new
+    break.new=break.old
+    break.new[i]=tnorm(1,lo=lo1,hi=hi1,mu=break.old[i],jump[i])
+    fix1=fix.MH(lo=lo1,hi=hi1,old1=break.old[i],new1=break.new[i],jump=jump[i])
+    
+    #get probabilities
+    pold=get.logl(param$theta,param$phi,break.old)
+    pnew=get.logl(param$theta,param$phi,break.new)
+    k=acceptMH(sum(pold),sum(pnew)+fix1,break.old[i],break.new[i],F)
+    break.old[i]=k$x
+  }
+  list(break1=break.old,accept=break.old!=break.orig)
 }
 #----------------------------
 print.adapt = function(accept1z,jump1z,accept.output){

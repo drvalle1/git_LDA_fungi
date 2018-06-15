@@ -6,16 +6,17 @@ setwd('U:\\GIT_models\\git_LDA_fungi')
 source('gibbs LDA fungi functions.R')
 sourceCpp('aux1.cpp')
 dat=data.matrix(read.csv('fake data5.csv',as.is=T))
-
 nloc=nrow(dat)
 nspp=ncol(dat)
-ncommun=10
+ncommun=5
 gamma=0.1
+uni=sort(unique(as.numeric(dat)))
+nuni=length(uni)
 
 #set initial values
 vlk=cbind(matrix(0.5,nloc,ncommun-1),1)
 phi=matrix(0,ncommun,nspp)
-
+break1=seq(from=-2,to=2,length.out=nuni-1)
 ones.nloc=rep(1,nloc)
 theta=convertVtoTheta(vlk,ones.nloc)
 ones.nspp=rep(1,nspp)
@@ -26,31 +27,46 @@ lo.vlk=rep(0,n.vlk)
 hi.vlk=rep(1,n.vlk)
 n.phi=ncommun*nspp
 
+#useful stuff
+indicator=list()
+for (i in 1:nuni){
+  cond=dat==uni[i]
+  indicator[[i]]=which(cond)
+}
+
 #gibbs stuff
 ngibbs=10000
 accept.output=50
 vec.theta=matrix(NA,ngibbs,nloc*ncommun)
 vec.phi=matrix(NA,ngibbs,ncommun*nspp)
+vec.break1=matrix(NA,ngibbs,nuni-1)
 
 jump1=list(vlk=matrix(1,nloc,ncommun-1),
-           phi=matrix(1,ncommun,nspp))
+           phi=matrix(1,ncommun,nspp),
+           break1=rep(1,nuni-1))
 accept1=list(vlk=matrix(0,nloc,ncommun-1),
-             phi=matrix(0,ncommun,nspp))
-param=list(theta=theta,phi=phi,vlk=vlk)
+             phi=matrix(0,ncommun,nspp),
+             break1=rep(0,nuni-1))
+param=list(theta=theta,phi=phi,vlk=vlk,break1=break1)
 
 #core MCMC algorithm
+options(warn=2)
 for (i in 1:ngibbs){
   print(i)
-  tmp=sample.vlk(param,jump1$vlk)
-  accept1$vlk=accept1$vlk+tmp$accept
-  param$vlk=tmp$vlk
-  param$theta=convertVtoTheta(param$vlk,ones.nloc)
-  # param$theta=theta.true
+  # tmp=sample.vlk(param,jump1$vlk)
+  # accept1$vlk=accept1$vlk+tmp$accept
+  # param$vlk=tmp$vlk
+  # param$theta=convertVtoTheta(param$vlk,ones.nloc)
+  param$theta=theta.true
     
-  tmp=sample.phi(param,jump1$phi)
-  accept1$phi=accept1$phi+tmp$accept
-  param$phi=tmp$phi
-  # param$phi=phi.true
+  # tmp=sample.phi(param,jump1$phi)
+  # accept1$phi=accept1$phi+tmp$accept
+  # param$phi=tmp$phi
+  param$phi=phi.true
+  
+  tmp=sample.break(param,jump1$break1)
+  accept1$break1=accept1$break1+tmp$accept
+  param$break1=tmp$break1
   
   #adaptive piece
   if (i%%accept.output==0 & i<1000){
@@ -62,6 +78,7 @@ for (i in 1:ngibbs){
   #store results
   vec.theta[i,]=param$theta
   vec.phi[i,]=param$phi
+  vec.break1[i,]=param$break1
 }
 
 #---------------------------------------------------
@@ -70,7 +87,7 @@ theta.estim=matrix(colMeans(vec.theta[seq1,]),nloc,ncommun)
 boxplot(theta.estim)
 
 seq.comm=1:5
-seq.comm=c(2,5,3,1,4)
+# seq.comm=c(2,5,3,1,4)
 theta.estim1=theta.estim[,seq.comm]
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
 for (i in 1:5){
