@@ -1,7 +1,7 @@
 rm(list=ls(all=TRUE))
 set.seed(4)
 
-nloc=1000
+nloc=3000
 nspp=200
 ncommun=5
 base=floor(nloc/(ncommun-2))
@@ -61,7 +61,7 @@ for (i in 1:nspp){
 
 #calculate probabilities
 medias=theta%*%phi; dim(medias)
-z=matrix(rnorm(nloc*nspp,mean=medias,sd=1),nloc,nspp)
+z.true=z=matrix(rnorm(nloc*nspp,mean=medias,sd=1),nloc,nspp)
 
 #generate actual observations y
 range(z)
