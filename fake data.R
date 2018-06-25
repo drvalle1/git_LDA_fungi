@@ -1,7 +1,7 @@
 rm(list=ls(all=TRUE))
 set.seed(4)
 
-nloc=3000
+nloc=1000
 nspp=200
 ncommun=5
 base=floor(nloc/(ncommun-2))
@@ -35,8 +35,8 @@ write.csv(theta,nome,row.names=F)
 
 #generate phi  
 phi=matrix(NA,ncommun,nspp)
-mu.large=2
-mu.small=-2
+mu.large=3
+mu.small=-3
 ind=matrix(rbinom(ncommun*nspp,size=1,prob=0.1),ncommun,nspp)
 for (i in 1:ncommun){
   ind1=ind[i,]

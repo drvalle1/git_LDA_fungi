@@ -89,15 +89,37 @@ sample.phi=function(param){
   media+w
 }
 #-----------------------------------------------------------------------------------------------
-sample.break=function(param){
-  util=matrix(NA,nuni,2)  
-  for (i in 1:nuni){
-    util[i,]=range(param$z[indicator[[i]]])
+sample.break=function(param,jump){
+  media=param$theta%*%param$phi
+  break1.old=break1.orig=param$break1
+  
+  for (i in 1:(nuni-1)){
+    break1.new=break1.old
+    
+    #propose new value
+    lo1=ifelse(i==1,-Inf,break1.old[i-1])
+    hi1=ifelse(i==(nuni-1),Inf,break1.old[i+1])
+    break1.new[i]=tnorm(1,lo1,hi1,mu=break1.old[i],sig=jump[i])
+    
+    #adjustment for truncated proposal
+    fix1=fix.MH(lo=lo1,hi=hi1,old1=break1.old[i],new1=break1.new[i],jump[i])
+    
+    #get probabilities
+    ind1=indicator[[i]]
+    ind2=indicator[[i+1]]
+    pold1=pnorm(break1.old[i]-media[ind1])-pnorm(lo1-media[ind1])
+    pold2=pnorm(hi1-media[ind2])          -pnorm(break1.old[i]-media[ind2])
+    pold=sum(log(pold1))+sum(log(pold2))
+    
+    pnew1=pnorm(break1.new[i]-media[ind1])-pnorm(lo1-media[ind1])
+    pnew2=pnorm(hi1-media[ind2])          -pnorm(break1.new[i]-media[ind2])
+    pnew=sum(log(pnew1))+sum(log(pnew2))
+    
+    #accept or reject
+    k=acceptMH(pold,pnew+fix1,break1.old[i],break1.new[i],F)
+    break1.old[i]=k$x
   }
-  colnames(util)=c('min1','max1')
-  lo1=util[-nuni,'max1']
-  hi1=util[-1,'min1']
-  runif(nuni-1,min=lo1,max=hi1)
+  list(break1=break1.old,accept=break1.old!=break1.orig)
 }
 #-----------------------------------------------------------------------------------------------
 sample.z=function(param){

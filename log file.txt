@@ -10,5 +10,13 @@ Let's try to isolate the problem:
 - phi is very well estimated if we know z,theta,breaks
 - phi is badly estimated if we know theta (but don't know z,breaks)
 - z,breaks badly estimated if we know theta and phi. It seems that it is very hard to move breaks and z's together (i.e., they are highly dependent on each other)
+#---------------------------------------------------------
+To break the interdependency between z and breaks, I will propose them jointly. 
 
-I will try to run this algorithm longer before giving up on this idea and moving back to work on the marginal model where the z's are integrated out
+- z,breaks well estimated if we know theta and phi!!!
+#-----------------------------------
+June 25
+
+1) aumentei diferenca entre common and rare species em fake data because results were so so before. Now it works well
+
+2) Does it work when we set ncomm=10 when it should be ncomm=5? yes

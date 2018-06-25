@@ -8,7 +8,7 @@ sourceCpp('aux1.cpp')
 dat=data.matrix(read.csv('fake data5.csv',as.is=T))
 nloc=nrow(dat)
 nspp=ncol(dat)
-ncommun=5
+ncommun=10
 gamma=0.1
 uni=sort(unique(as.numeric(dat)))
 nuni=length(uni)
@@ -16,7 +16,7 @@ nuni=length(uni)
 #set initial values
 vlk=cbind(matrix(0.5,nloc,ncommun-1),1)
 phi=matrix(0,ncommun,nspp)
-break1=seq(from=1.5,to=nuni+0.5,by=1)
+break1=seq(from=-0.1,to=0.1,length.out=nuni-1)
 ones.nloc=rep(1,nloc)
 theta=convertVtoTheta(vlk,ones.nloc)
 ones.nspp=rep(1,nspp)
@@ -40,30 +40,32 @@ for (i in 1:nuni){
 }
 
 #gibbs stuff
-ngibbs=1000
+ngibbs=10000
 accept.output=50
 vec.theta=matrix(NA,ngibbs,nloc*ncommun)
 vec.phi=matrix(NA,ngibbs,ncommun*nspp)
 vec.break1=matrix(NA,ngibbs,nuni-1)
 
-jump1=list(vlk=matrix(1,nloc,ncommun-1))
-accept1=list(vlk=matrix(0,nloc,ncommun-1))
+jump1=list(vlk=matrix(1,nloc,ncommun-1),break1=rep(1,nuni-1))
+accept1=list(vlk=matrix(0,nloc,ncommun-1),break1=rep(0,nuni-1))
 param=list(theta=theta,phi=phi,vlk=vlk,break1=break1,z=z)
 
 #core MCMC algorithm
 options(warn=2)
 for (i in 1:ngibbs){
   print(i)
-  # tmp=sample.vlk(param,jump1$vlk)
-  # accept1$vlk=accept1$vlk+tmp$accept
-  # param$vlk=tmp$vlk
-  # param$theta=convertVtoTheta(param$vlk,ones.nloc)
-  param$theta=theta.true
+  tmp=sample.vlk(param,jump1$vlk)
+  accept1$vlk=accept1$vlk+tmp$accept
+  param$vlk=tmp$vlk
+  param$theta=convertVtoTheta(param$vlk,ones.nloc)
+  # param$theta=theta.true
     
-  # param$phi=sample.phi(param)
-  param$phi=phi.true
+  param$phi=sample.phi(param)
+  # param$phi=phi.true
   
-  param$break1=sample.break(param)
+  tmp=sample.break(param,jump1$break1)
+  accept1$break1=accept1$break1+tmp$accept
+  param$break1=tmp$break1
   # param$break1=break1.true[-c(1,length(break1.true))]
   
   param$z=sample.z(param)
@@ -88,8 +90,8 @@ seq1=(ngibbs*0.8):ngibbs
 theta.estim=matrix(colMeans(vec.theta[seq1,]),nloc,ncommun)
 boxplot(theta.estim)
 
-seq.comm=1:5
-# seq.comm=c(2,4,5,1,3)
+# seq.comm=1:5
+seq.comm=c(3,1,2,5,4)
 theta.estim1=theta.estim[,seq.comm]
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
 for (i in 1:5){
