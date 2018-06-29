@@ -16,7 +16,7 @@ nuni=length(uni)
 #set initial values
 vlk=cbind(matrix(0.5,nloc,ncommun-1),1)
 phi=matrix(0,ncommun,nspp)
-break1=seq(from=-0.1,to=0.1,length.out=nuni-1)
+break1=seq(from=0,to=0.5,length.out=nuni-1)
 ones.nloc=rep(1,nloc)
 theta=convertVtoTheta(vlk,ones.nloc)
 ones.nspp=rep(1,nspp)
@@ -45,6 +45,7 @@ accept.output=50
 vec.theta=matrix(NA,ngibbs,nloc*ncommun)
 vec.phi=matrix(NA,ngibbs,ncommun*nspp)
 vec.break1=matrix(NA,ngibbs,nuni-1)
+vec.logl=matrix(NA,ngibbs,1)
 
 jump1=list(vlk=matrix(1,nloc,ncommun-1),break1=rep(1,nuni-1))
 accept1=list(vlk=matrix(0,nloc,ncommun-1),break1=rep(0,nuni-1))
@@ -82,6 +83,7 @@ for (i in 1:ngibbs){
   vec.theta[i,]=param$theta
   vec.phi[i,]=param$phi
   vec.break1[i,]=param$break1
+  vec.logl[i]=get.marg.logl(param$theta,param$phi,param$break1)
 }
 
 #---------------------------------------------------
@@ -91,7 +93,7 @@ theta.estim=matrix(colMeans(vec.theta[seq1,]),nloc,ncommun)
 boxplot(theta.estim)
 
 # seq.comm=1:5
-seq.comm=c(3,1,2,5,4)
+seq.comm=c(4,1,2,3,5)
 theta.estim1=theta.estim[,seq.comm]
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
 for (i in 1:5){

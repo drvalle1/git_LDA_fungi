@@ -91,9 +91,10 @@ sample.phi=function(param){
 #-----------------------------------------------------------------------------------------------
 sample.break=function(param,jump){
   media=param$theta%*%param$phi
+  param$break1[1]=0
   break1.old=break1.orig=param$break1
   
-  for (i in 1:(nuni-1)){
+  for (i in 2:(nuni-1)){ #the first break is set to 0 for identifiability purposes
     break1.new=break1.old
     
     #propose new value
@@ -151,4 +152,17 @@ print.adapt = function(accept1z,jump1z,accept.output){
   }
   
   return(list(jump1=jump1,accept1=accept1))
+}
+#-----------------------------------------------------------------------------------------------
+get.marg.logl=function(theta,phi,break1){
+  media=theta%*%phi
+  break2=c(-Inf,break1,Inf)
+  prob=0
+  for (i in 1:nuni){
+    #get probabilities
+    ind1=indicator[[i]]
+    tmp=pnorm(break2[i+1]-media[ind1])-pnorm(break2[i]-media[ind1])
+    prob=prob+sum(log(tmp))
+  }
+  prob
 }
