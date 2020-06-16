@@ -66,96 +66,21 @@ rdirichlet1=function(alpha){
   x/soma
 }
 #-----------------------------------------------------------------------------------------------
-log.ddirichlet=function(alpha,theta,lo.prob,hi.prob){
-  #to avoid numerical issues with lgamma
-  cond=alpha<lo.prob; alpha[cond]=lo.prob
-  cond=alpha>hi.prob; alpha[cond]=hi.prob
-  cond=theta<lo.prob; theta[cond]=lo.prob
-  cond=theta>hi.prob; theta[cond]=hi.prob
-  
-  soma=rowSums(alpha)
-  p1=lgamma(soma)
-  p2=rowSums((alpha-1)*log(theta))
-  p3=-rowSums(lgamma(alpha))
-  p1+p2+p3
-}
-#-----------------------------------------------------------------------------------------------
-sample.theta=function(jump,nloc,ncommun,param,lo.prob,hi.prob,gamma,ones.nloc){
-  alpha=matrix(1/jump,nloc,ncommun) #jump is big, alpha is small, greater variability
-  theta.old=theta.new=param$theta
-  theta.new=rdirichlet1(alpha*theta.old)
-  cond=theta.new<lo.prob; theta.new[cond]=lo.prob
-  cond=theta.new>hi.prob; theta.new[cond]=hi.prob
-  theta.new=theta.new/rowSums(theta.new)
-  
-  #convert from theta to v to get priors
-  vlk.old=param$vlk
-  vlk.new=convertThetatoV(theta.new)
-  vlk.new[,ncommun]=1
-  #checking
-  # teste=convertVtoTheta(vlk.new,ones.nloc)
-  # plot(theta.new,teste)
-  cond=!is.finite(vlk.new) | is.nan(vlk.new)
-  vlk.new[cond]=rbeta(sum(cond),1,gamma)
-  theta.new=convertVtoTheta(vlk.new,ones.nloc)
-
-  #get loglikel
-  pold=rowSums(get.logl(theta.old,param$phi,param$z))
-  pnew=rowSums(get.logl(theta.new,param$phi,param$z))
-  
-  #get priors
-  prior.old=rowSums(dbeta(vlk.old[,-ncommun],1,gamma,log=T))  
-  prior.new=rowSums(dbeta(vlk.new[,-ncommun],1,gamma,log=T))
-  
-  #get jump probabilities
-  old.to.new=log.ddirichlet(alpha=theta.old*alpha,
-                            theta=theta.new,
-                            lo.prob=lo.prob,hi.prob=hi.prob)
-  new.to.old=log.ddirichlet(alpha=theta.new*alpha,
-                            theta=theta.old,
-                            lo.prob=lo.prob,hi.prob=hi.prob)
-  
-  #accept or reject
-  k=acceptMH.indicator(p0=pold+prior.old+old.to.new,p1=pnew+prior.new+new.to.old)
-  accept=rep(0,nloc)
-  n=length(k)
-  if (n!=0) {
-    theta.old[k,]=theta.new[k,]
-    accept[k]=1
-    vlk.old[k,]=vlk.new[k,]
+sample.theta=function(nloc,ncommun,thetas.pot,phi,z,nspp,thetas.p.lprob){
+  theta=matrix(NA,nloc,ncommun)
+  media=thetas.pot%*%phi
+  for (i in 1:nloc){
+    # ztmp=matrix(z[i,],n.thetas.pot,nspp,byrow=T)
+    # prob=-(1/2)*rowSums((ztmp-media)^2)
+    # 
+    prob=-(1/2)*CalcSqDiff(z=z[i,], media=media)
+    prob1=exp(prob+thetas.p.lprob)
+    prob2=prob1/sum(prob1)
+    tmp=rmultinom(1,size=1,prob=prob2)
+    ind=which(tmp==1)
+    theta[i,]=thetas.pot[ind,]
   }
-  list(theta=theta.old,vlk=vlk.old,accept=accept)
-}
-#-----------------------------------------------------------------------------------------------
-sample.vlk=function(param,jump,lo.vlk,hi.vlk,ncommun,nloc,gamma,n.vlk,ones.nspp,ones.nloc){
-  vlk.orig=vlk.old=param$vlk
-  
-  #things for MH
-  tmp=tnorm(n.vlk,lo=lo.vlk,hi=hi.vlk,mu=vlk.old[,-ncommun],sig=jump)
-  vlk.prop=matrix(tmp,nloc,ncommun-1)
-  tmp=fix.MH(lo=lo.vlk,hi=hi.vlk,old1=vlk.old[,-ncommun],new1=vlk.prop,jump)
-  fix1=matrix(tmp,nloc,ncommun-1)
-  
-  #priors
-  prior.old=dbeta(vlk.old[,-ncommun],1,gamma,log=T)
-  prior.new=dbeta(vlk.prop,1,gamma,log=T)
-  
-  for (i in 1:(ncommun-1)){
-    vlk.new=vlk.old
-    vlk.new[,i]=vlk.prop[,i]
-    
-    theta.old=convertVtoTheta(vlk.old,ones.nloc)
-    theta.new=convertVtoTheta(vlk.new,ones.nloc)
-    pold=get.logl(theta.old,param$phi,param$z)
-    pnew=get.logl(theta.new,param$phi,param$z)
-    pold1=(pold%*%ones.nspp)+prior.old[,i]
-    pnew1=(pnew%*%ones.nspp)+prior.new[,i]
-    
-    k=acceptMH(pold1,pnew1+fix1[,i],vlk.old[,i],vlk.new[,i],F)
-    vlk.old[,i]=k$x
-  }
-  
-  list(vlk=vlk.old,accept=vlk.old[,-ncommun]!=vlk.orig[,-ncommun])
+  theta
 }
 #-----------------------------------------------------------------------------------------------
 sample.phi=function(param,ncommun,nspp){

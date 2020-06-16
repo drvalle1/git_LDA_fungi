@@ -8,18 +8,20 @@ source('gibbs LDA ordinal aux.R')
 source('gibbs LDA ordinal function.R')
 sourceCpp('LDA_ordinal_rcpp.cpp')
 
+thetas.pot=data.matrix(read.csv('potential thetas.csv',as.is=T))
 dat=data.matrix(read.csv('fake data3.csv',as.is=T))
 ngibbs=1000
-ncomm.max=10
+ncomm.max=ncol(thetas.pot)
 prop.burn=0.9
-gamma=1
-res=LDA_ordinal(dat=dat,ncomm.max=ncomm.max,ngibbs=ngibbs,prop.burn=prop.burn,gamma=gamma)
+res=LDA_ordinal(dat=dat,ncomm.max=ncomm.max,ngibbs=ngibbs,prop.burn=prop.burn,
+                thetas.p.lprob=thetas.p.lprob,thetas.pot=thetas.pot)
 
 #---------------------------------------------------
 nloc=nrow(dat)
 nspp=ncol(dat)
 
 #look at logl
+seq1=1:ngibbs
 seq1=(ngibbs*0.8):ngibbs
 plot(res$logl[seq1],type='l')
 

@@ -1,4 +1,4 @@
-LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,gamma){
+LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,thetas.p.lprob,thetas.pot){
   nloc=nrow(dat)
   nspp=ncol(dat)
   ncommun=ncomm.max
@@ -6,17 +6,12 @@ LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,gamma){
   nuni=length(uni)
   
   #set initial values
-  vlk=cbind(matrix(0.5,nloc,ncommun-1),1)
   phi=matrix(0,ncommun,nspp)
   break1=seq(from=0,to=0.1,length.out=nuni-1)
   ones.nloc=rep(1,nloc)
-  theta=convertVtoTheta(vlk,ones.nloc)
   ones.nspp=rep(1,nspp)
   
   #things for MH algorithm
-  n.vlk=(ncommun-1)*nloc
-  lo.vlk=rep(0,n.vlk)
-  hi.vlk=rep(1,n.vlk)
   n.phi=ncommun*nspp
   
   #useful stuff
@@ -41,56 +36,42 @@ LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,gamma){
   vec.break1=matrix(NA,nkeep,nuni-1)
   vec.logl=matrix(NA,ngibbs,1)
   
-  jump1=list(vlk=matrix(1,nloc,ncommun-1),
-             break1=rep(1,nuni-1),
+  jump1=list(break1=rep(1,nuni-1),
              break1.sum=0.2,
-             break1.mult=0.05,
-             theta=rep(0.1,nloc))
-  accept1=list(vlk=matrix(0,nloc,ncommun-1),
-               break1=rep(0,nuni-1),
+             break1.mult=0.05)
+  accept1=list(break1=rep(0,nuni-1),
                break1.sum=0,
-               break1.mult=0,
-               theta=rep(0,nloc))
-  param=list(theta=theta,phi=phi,vlk=vlk,break1=break1,z=z)
+               break1.mult=0)
+  param=list(theta=NA,phi=phi,break1=break1,z=z)
   
   #core MCMC algorithm
   options(warn=2)
   oo=1
   for (i in 1:ngibbs){
     print(i)
-    tmp=sample.vlk(param=param,jump=jump1$vlk,lo.vlk=lo.vlk,hi.vlk=hi.vlk,
-                   ncommun=ncommun,nloc=nloc,gamma=gamma,
-                   n.vlk=n.vlk,ones.nspp=ones.nspp,ones.nloc=ones.nloc)
-    accept1$vlk=accept1$vlk+tmp$accept
-    param$vlk=tmp$vlk
-    param$theta=convertVtoTheta(param$vlk,ones.nloc)
-    
-    tmp=sample.theta(jump=jump1$theta,nloc=nloc,ncommun=ncommun,param=param,
-                     lo.prob=lo.prob,hi.prob=hi.prob,gamma=gamma,ones.nloc=ones.nloc)
-    accept1$theta=accept1$theta+tmp$accept
-    param$vlk=tmp$vlk
-    param$theta=tmp$theta
+    param$theta=sample.theta(nloc=nloc,ncommun=ncommun,nspp=nspp,thetas.pot=thetas.pot,
+                             phi=phi,z=z,thetas.p.lprob=thetas.p.lprob)
     # param$theta=theta.true
     
-    param$phi=sample.phi(param,ncommun,nspp)
-    # param$phi=rbind(phi.true,matrix(0.001,ncommun-5,nspp))
+    # param$phi=sample.phi(param,ncommun,nspp)
+    param$phi=rbind(phi.true,matrix(0.001,ncommun-3,nspp))
     
     #sample breaks
-    tmp=sample.break(param,jump1$break1,nuni,indicator)
-    accept1$break1=accept1$break1+tmp$accept
-    param$break1=tmp$break1
+    # tmp=sample.break(param,jump1$break1,nuni,indicator)
+    # accept1$break1=accept1$break1+tmp$accept
+    # param$break1=tmp$break1
+    # 
+    # tmp=sample.break.sum(param,jump1$break1.sum,nuni,indicator)
+    # accept1$break1.sum=accept1$break1.sum+tmp$accept
+    # param$break1=tmp$break1
+    # 
+    # tmp=sample.break.mult(param,jump1$break1.mult,nuni,indicator)
+    # accept1$break1.mult=accept1$break1.mult+tmp$accept
+    # param$break1=tmp$break1
+    param$break1=break1.true[-c(1,length(break1.true))]
     
-    tmp=sample.break.sum(param,jump1$break1.sum,nuni,indicator)
-    accept1$break1.sum=accept1$break1.sum+tmp$accept
-    param$break1=tmp$break1
-    
-    tmp=sample.break.mult(param,jump1$break1.mult,nuni,indicator)
-    accept1$break1.mult=accept1$break1.mult+tmp$accept
-    param$break1=tmp$break1
-    # param$break1=break1.true[-c(1,length(break1.true))]
-    
-    param$z=sample.z(param,nuni,indicator,n.indicator)
-    # param$z=z.true
+    # param$z=sample.z(param,nuni,indicator,n.indicator)
+    param$z=z.true
     
     #adaptive piece
     if (i%%accept.output==0 & i<1000){

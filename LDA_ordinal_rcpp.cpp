@@ -8,32 +8,61 @@ using namespace Rcpp;
 /*********************************                      UTILS          *****************************************************/
 /***************************************************************************************************************************/
 
-//' This function converts vmat into theta
+// This function helps with multinomial draws
 // [[Rcpp::export]]
-NumericMatrix convertVtoTheta(NumericMatrix vmat,
-                                NumericVector prod) {
-  NumericMatrix res(vmat.nrow(),vmat.ncol());
-  NumericVector prod1=clone(prod);
+int whichLessDVPresence(double value, NumericVector prob) {
+  int res=prob.length()-1;
+  double probcum = 0;
   
-  for(int j=0; j<vmat.ncol();j++){
-    res(_,j)=vmat(_,j)*prod1;    
-    prod1=prod1*(1-vmat(_,j));
+  for (int i = 0; i < prob.length(); i++) {
+    probcum = probcum + prob(i);
+    if (value < probcum) {
+      res = i;
+      break;
+    }
+  }
+  return res;
+}
+
+//' This function helps the sample.theta function
+// [[Rcpp::export]]
+NumericVector CalcSqDiff(NumericVector z, NumericMatrix media) {
+  NumericVector res(media.nrow());
+  double tmp;
+  
+  for(int j=0; j<media.nrow(); j++){ //loop over potential thetas
+    tmp=0;
+    for(int k=0; k<z.length(); k++){ //loop over species
+      tmp=tmp+pow(z[k]-media(j,k),2);
+    }
+    res[j]=tmp;
   }
   
   return (res);
 }
 
-//' This function converts theta into vmat
+//' This function helps the sample.theta function
 // [[Rcpp::export]]
-NumericMatrix convertThetatoV(NumericMatrix theta) {
-  NumericMatrix res(theta.nrow(),theta.ncol());
-  NumericVector prod1=(1-theta(_,0));
-  res(_,0)=theta(_,0);
+IntegerVector SampleIndTheta(NumericMatrix z, NumericMatrix media, NumericVector lprior,
+                             NumericVector runif1) {
+  NumericVector res(media.nrow());
+  IntegerVector fim(z.nrow());
+  double tmp;
   
-  for(int j=1; j<theta.ncol();j++){
-    res(_,j)=theta(_,j)/prod1;    
-    prod1=prod1*(1-res(_,j));
+  for(int i=0; i<z.nrow(); i++){ //loop over locations
+    for(int j=0; j<media.nrow(); j++){ //loop over potential thetas
+      tmp=0;
+      for(int k=0; k<z.ncol(); k++){ //loop over species
+        tmp=tmp+pow(z[k]-media(j,k),2);
+      }
+      res[j]=tmp+lprior[j];
+    }
+    res=res-max(res);
+    res=exp(res);
+    res=res/sum(res);
+    fim[i]=whichLessDVPresence(runif1[i], res);
   }
   
-  return (res);
+  return (fim);
 }
+
