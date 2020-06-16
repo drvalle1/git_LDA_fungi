@@ -20,3 +20,13 @@ June 25
 1) aumentei diferenca entre common and rare species em fake data because results were so so before. Now it works well
 
 2) Does it work when we set ncomm=10 when it should be ncomm=5? yes
+#-----------------------------------
+Sept 25
+
+Stick-breaking prior with gamma=0.1 works so so for ncomm=5
+Stick-breaking prior with gamma=0.1 does not work for ncomm=7
+Stick-breaking prior with gamma=1 works so so for ncomm=7
+Stick-breaking prior with gamma=1 works so so for ncomm=5
+
+Changed the number of discrete outcomes with the assumption that this would help estimate model parameters
+worked so so: Stick-breaking prior with gamma=1 for ncomm=5

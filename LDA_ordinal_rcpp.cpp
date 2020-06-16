@@ -22,3 +22,18 @@ NumericMatrix convertVtoTheta(NumericMatrix vmat,
   
   return (res);
 }
+
+//' This function converts theta into vmat
+// [[Rcpp::export]]
+NumericMatrix convertThetatoV(NumericMatrix theta) {
+  NumericMatrix res(theta.nrow(),theta.ncol());
+  NumericVector prod1=(1-theta(_,0));
+  res(_,0)=theta(_,0);
+  
+  for(int j=1; j<theta.ncol();j++){
+    res(_,j)=theta(_,j)/prod1;    
+    prod1=prod1*(1-res(_,j));
+  }
+  
+  return (res);
+}

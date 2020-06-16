@@ -20,6 +20,8 @@ LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,gamma){
   n.phi=ncommun*nspp
   
   #useful stuff
+  lo.prob=0.000001
+  hi.prob=1-lo.prob
   indicator=list()
   n.indicator=rep(NA,nuni)
   z=matrix(NA,nloc,nspp)
@@ -39,8 +41,16 @@ LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,gamma){
   vec.break1=matrix(NA,nkeep,nuni-1)
   vec.logl=matrix(NA,ngibbs,1)
   
-  jump1=list(vlk=matrix(1,nloc,ncommun-1),break1=rep(1,nuni-1),break1.sum=0.2,break1.mult=0.05)
-  accept1=list(vlk=matrix(0,nloc,ncommun-1),break1=rep(0,nuni-1),break1.sum=0,break1.mult=0)
+  jump1=list(vlk=matrix(1,nloc,ncommun-1),
+             break1=rep(1,nuni-1),
+             break1.sum=0.2,
+             break1.mult=0.05,
+             theta=rep(0.1,nloc))
+  accept1=list(vlk=matrix(0,nloc,ncommun-1),
+               break1=rep(0,nuni-1),
+               break1.sum=0,
+               break1.mult=0,
+               theta=rep(0,nloc))
   param=list(theta=theta,phi=phi,vlk=vlk,break1=break1,z=z)
   
   #core MCMC algorithm
@@ -48,14 +58,22 @@ LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,gamma){
   oo=1
   for (i in 1:ngibbs){
     print(i)
-    tmp=sample.vlk(param,jump1$vlk,lo.vlk,hi.vlk,ncommun,nloc,gamma,n.vlk,ones.nspp,ones.nloc)
+    tmp=sample.vlk(param=param,jump=jump1$vlk,lo.vlk=lo.vlk,hi.vlk=hi.vlk,
+                   ncommun=ncommun,nloc=nloc,gamma=gamma,
+                   n.vlk=n.vlk,ones.nspp=ones.nspp,ones.nloc=ones.nloc)
     accept1$vlk=accept1$vlk+tmp$accept
     param$vlk=tmp$vlk
     param$theta=convertVtoTheta(param$vlk,ones.nloc)
+    
+    tmp=sample.theta(jump=jump1$theta,nloc=nloc,ncommun=ncommun,param=param,
+                     lo.prob=lo.prob,hi.prob=hi.prob,gamma=gamma,ones.nloc=ones.nloc)
+    accept1$theta=accept1$theta+tmp$accept
+    param$vlk=tmp$vlk
+    param$theta=tmp$theta
     # param$theta=theta.true
     
     param$phi=sample.phi(param,ncommun,nspp)
-    # param$phi=phi.true
+    # param$phi=rbind(phi.true,matrix(0.001,ncommun-5,nspp))
     
     #sample breaks
     tmp=sample.break(param,jump1$break1,nuni,indicator)

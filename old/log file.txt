@@ -1,0 +1,22 @@
+June 22
+
+Am I being to ambitious in relation to what can be estimated? Even if I know z and breaks, the algorithm estimates theta and phi so so.
+
+1) remove stick-breaking prior? Use stick-breaking construction of dirichlet(1) 
+2) propose/accept all theta's for a location at once. Jump distrib is dirichlet at current values
+
+Let's try to isolate the problem:
+
+- phi is very well estimated if we know z,theta,breaks
+- phi is badly estimated if we know theta (but don't know z,breaks)
+- z,breaks badly estimated if we know theta and phi. It seems that it is very hard to move breaks and z's together (i.e., they are highly dependent on each other)
+#---------------------------------------------------------
+To break the interdependency between z and breaks, I will propose them jointly. 
+
+- z,breaks well estimated if we know theta and phi!!!
+#-----------------------------------
+June 25
+
+1) aumentei diferenca entre common and rare species em fake data because results were so so before. Now it works well
+
+2) Does it work when we set ncomm=10 when it should be ncomm=5? yes

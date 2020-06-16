@@ -3,8 +3,8 @@ set.seed(4)
 
 nloc=1000
 nspp=200
-ncommun=5
-base=floor(nloc/(ncommun-2))
+ncommun=3
+base=floor(nloc/(ncommun-1))
 
 #generate thetas
 x=seq(from=-1,to=1,length.out=base)
@@ -36,7 +36,7 @@ write.csv(theta,nome,row.names=F)
 #generate phi  
 phi=matrix(NA,ncommun,nspp)
 mu.large=6
-mu.small=1
+mu.small=2
 ind=matrix(rbinom(ncommun*nspp,size=1,prob=0.1),ncommun,nspp)
 for (i in 1:ncommun){
   ind1=ind[i,]
@@ -65,7 +65,7 @@ z.true=z=matrix(rnorm(nloc*nspp,mean=medias,sd=1),nloc,nspp)
 
 #generate actual observations y
 range(z)
-break1.true=break1=c(-Inf,seq(from=0,to=5.5,by=0.5),Inf)
+break1.true=break1=c(-Inf,seq(from=0,to=6,by=0.1),Inf)
 y=matrix(NA,nloc,nspp)
 for (i in 2:length(break1)){
   cond=z>break1[i-1] & z<break1[i]  

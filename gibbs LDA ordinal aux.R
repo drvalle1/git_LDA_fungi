@@ -44,9 +44,87 @@ acceptMH <- function(p0,p1,x0,x1,BLOCK){   #accept for M, M-H
   list(x = x0, accept = accept)
 }
 #-----------------------------------------------------------------------------------------------
+acceptMH.indicator <- function(p0,p1){  
+  
+  nz           <- length(p0)  #no. to accept
+  a    <- exp(p1 - p0)       #acceptance PR
+  z    <- runif(nz,0,1)
+  which(z < a)
+  
+}
+#-----------------------------------------------------------------------------------------------
 get.logl=function(theta,phi,z){
   media=theta%*%phi
   dnorm(z,media,sd=1,log=T)
+}
+#-----------------------------------------------------------------------------------------------
+rdirichlet1=function(alpha){
+  nrow1=nrow(alpha)
+  ncol1=ncol(alpha)
+  x=matrix(rgamma(nrow1*ncol1,alpha),nrow1,ncol1)
+  soma=rowSums(x)
+  x/soma
+}
+#-----------------------------------------------------------------------------------------------
+log.ddirichlet=function(alpha,theta,lo.prob,hi.prob){
+  #to avoid numerical issues with lgamma
+  cond=alpha<lo.prob; alpha[cond]=lo.prob
+  cond=alpha>hi.prob; alpha[cond]=hi.prob
+  cond=theta<lo.prob; theta[cond]=lo.prob
+  cond=theta>hi.prob; theta[cond]=hi.prob
+  
+  soma=rowSums(alpha)
+  p1=lgamma(soma)
+  p2=rowSums((alpha-1)*log(theta))
+  p3=-rowSums(lgamma(alpha))
+  p1+p2+p3
+}
+#-----------------------------------------------------------------------------------------------
+sample.theta=function(jump,nloc,ncommun,param,lo.prob,hi.prob,gamma,ones.nloc){
+  alpha=matrix(1/jump,nloc,ncommun) #jump is big, alpha is small, greater variability
+  theta.old=theta.new=param$theta
+  theta.new=rdirichlet1(alpha*theta.old)
+  cond=theta.new<lo.prob; theta.new[cond]=lo.prob
+  cond=theta.new>hi.prob; theta.new[cond]=hi.prob
+  theta.new=theta.new/rowSums(theta.new)
+  
+  #convert from theta to v to get priors
+  vlk.old=param$vlk
+  vlk.new=convertThetatoV(theta.new)
+  vlk.new[,ncommun]=1
+  #checking
+  # teste=convertVtoTheta(vlk.new,ones.nloc)
+  # plot(theta.new,teste)
+  cond=!is.finite(vlk.new) | is.nan(vlk.new)
+  vlk.new[cond]=rbeta(sum(cond),1,gamma)
+  theta.new=convertVtoTheta(vlk.new,ones.nloc)
+
+  #get loglikel
+  pold=rowSums(get.logl(theta.old,param$phi,param$z))
+  pnew=rowSums(get.logl(theta.new,param$phi,param$z))
+  
+  #get priors
+  prior.old=rowSums(dbeta(vlk.old[,-ncommun],1,gamma,log=T))  
+  prior.new=rowSums(dbeta(vlk.new[,-ncommun],1,gamma,log=T))
+  
+  #get jump probabilities
+  old.to.new=log.ddirichlet(alpha=theta.old*alpha,
+                            theta=theta.new,
+                            lo.prob=lo.prob,hi.prob=hi.prob)
+  new.to.old=log.ddirichlet(alpha=theta.new*alpha,
+                            theta=theta.old,
+                            lo.prob=lo.prob,hi.prob=hi.prob)
+  
+  #accept or reject
+  k=acceptMH.indicator(p0=pold+prior.old+old.to.new,p1=pnew+prior.new+new.to.old)
+  accept=rep(0,nloc)
+  n=length(k)
+  if (n!=0) {
+    theta.old[k,]=theta.new[k,]
+    accept[k]=1
+    vlk.old[k,]=vlk.new[k,]
+  }
+  list(theta=theta.old,vlk=vlk.old,accept=accept)
 }
 #-----------------------------------------------------------------------------------------------
 sample.vlk=function(param,jump,lo.vlk,hi.vlk,ncommun,nloc,gamma,n.vlk,ones.nspp,ones.nloc){
@@ -135,8 +213,8 @@ sample.break.sum=function(param,jump,nuni,indicator){
   break1.new[1]=0
   
   #get probabilities
-  pold=get.marg.logl(param$theta,param$phi,break1.old,nuni,indicator)
-  pnew=get.marg.logl(param$theta,param$phi,break1.new,nuni,indicator)
+  pold=get.marg.logl(param$theta,param$phi,break1.old,nuni,indicator)+pnorm(break1.new[2],mean=0,sd=jump,log=T)
+  pnew=get.marg.logl(param$theta,param$phi,break1.new,nuni,indicator)+pnorm(break1.old[2],mean=0,sd=jump,log=T)
 
   #accept or reject
   k=acceptMH(pold,pnew,0,1,F)
@@ -187,9 +265,9 @@ print.adapt = function(accept1z,jump1z,accept.output){
   }
   
   for (k in 1:length(jump1)){
-    cond=(accept1[[k]]/accept.output)>0.4 & jump1[[k]]<100
+    cond=(accept1[[k]]/accept.output)>0.4 & jump1[[k]]<10
     jump1[[k]][cond] = jump1[[k]][cond]*2       
-    cond=(accept1[[k]]/accept.output)<0.2 & jump1[[k]]>0.01
+    cond=(accept1[[k]]/accept.output)<0.2 & jump1[[k]]>0.0001
     jump1[[k]][cond] = jump1[[k]][cond]*0.5
     accept1[[k]][]=0
   }
