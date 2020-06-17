@@ -1,9 +1,9 @@
 rm(list=ls(all=TRUE))
-set.seed(4)
+set.seed(9)
 
 nloc=100
-nspp=50
-ncommun=3
+nspp=200
+ncommun=4
 base=floor(nloc/(ncommun-1))
 
 #generate thetas
@@ -23,21 +23,28 @@ for (i in 1:ncommun){
   theta[seq3,i]=y[1:length(seq3)]
 }
 theta=theta/matrix(apply(theta,1,sum),nloc,ncommun)
-theta.true=theta
-  
+
+#match thetas to potential thetas  
+setwd('U:\\GIT_models\\git_LDA_fungi') 
+thetas.pot=data.matrix(read.csv('potential thetas.csv',as.is=T))
+ncomm.theta.pot=ncol(thetas.pot)
+for (i in 1:nloc){
+  theta.mat=matrix(c(theta[i,],rep(0,ncomm.theta.pot-ncommun)),
+                   nrow(thetas.pot),
+                   ncomm.theta.pot,byrow=T) #watch out for zeroes that are added
+  sse=rowSums((theta.mat-thetas.pot)^2)
+  ind=which(sse==min(sse))
+  theta[i,]=thetas.pot[ind,1:ncommun]
+}
+
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
 for (i in 1:ncommun) lines(1:nloc,theta[,i],col=i)
-  
-#export theta
-setwd('U:\\GIT_models\\git_LDA_fungi') 
-nome=paste('theta ',ncommun,'.csv',sep='')
-write.csv(theta,nome,row.names=F)
 
 #generate phi  
 phi=matrix(NA,ncommun,nspp)
 mu.large=6
 mu.small=2
-ind=matrix(rbinom(ncommun*nspp,size=1,prob=0.1),ncommun,nspp)
+ind=matrix(rbinom(ncommun*nspp,size=1,prob=0.2),ncommun,nspp)
 for (i in 1:ncommun){
   ind1=ind[i,]
   cond=ind1==1

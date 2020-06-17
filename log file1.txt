@@ -1,0 +1,2 @@
+increased number of species
+made discretized thetas.true in the same way as thetas.pot

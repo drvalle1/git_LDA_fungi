@@ -50,34 +50,40 @@ LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,thetas.p.lprob,thetas.pot){
   for (i in 1:ngibbs){
     print(i)
     param$theta=sample.theta(nloc=nloc,ncommun=ncommun,nspp=nspp,thetas.pot=thetas.pot,
-                             phi=phi,z=z,thetas.p.lprob=thetas.p.lprob)
+                             phi=param$phi,z=param$z,thetas.p.lprob=thetas.p.lprob)
     # param$theta=theta.true
     
-    # param$phi=sample.phi(param,ncommun,nspp)
-    param$phi=rbind(phi.true,matrix(0.001,ncommun-3,nspp))
+    param$phi=sample.phi(param,ncommun,nspp)
+    # param$phi=rbind(phi.true,matrix(0.001,ncommun-3,nspp))
     
     #sample breaks
-    # tmp=sample.break(param,jump1$break1,nuni,indicator)
-    # accept1$break1=accept1$break1+tmp$accept
-    # param$break1=tmp$break1
-    # 
-    # tmp=sample.break.sum(param,jump1$break1.sum,nuni,indicator)
-    # accept1$break1.sum=accept1$break1.sum+tmp$accept
-    # param$break1=tmp$break1
-    # 
-    # tmp=sample.break.mult(param,jump1$break1.mult,nuni,indicator)
-    # accept1$break1.mult=accept1$break1.mult+tmp$accept
-    # param$break1=tmp$break1
-    param$break1=break1.true[-c(1,length(break1.true))]
+    tmp=sample.break(param,jump1$break1,nuni,indicator)
+    accept1$break1=accept1$break1+tmp$accept
+    param$break1=tmp$break1
+
+    tmp=sample.break.sum(param,jump1$break1.sum,nuni,indicator)
+    accept1$break1.sum=accept1$break1.sum+tmp$accept
+    param$break1=tmp$break1
+
+    tmp=sample.break.mult(param,jump1$break1.mult,nuni,indicator)
+    accept1$break1.mult=accept1$break1.mult+tmp$accept
+    param$break1=tmp$break1
+    # param$break1=break1.true[-c(1,length(break1.true))]
     
-    # param$z=sample.z(param,nuni,indicator,n.indicator)
-    param$z=z.true
+    param$z=sample.z(param,nuni,indicator,n.indicator)
+    # param$z=z.true
     
-    #adaptive piece
-    if (i%%accept.output==0 & i<1000){
+    if (i%%accept.output==0 & i<(ngibbs/2)){
+      #adaptive MH
       k=print.adapt(accept1z=accept1,jump1z=jump1,accept.output=accept.output)
       accept1=k$accept1
       jump1=k$jump1
+      
+      #re-order results
+      med=apply(param$theta,2,median)
+      ind=order(med,decreasing=T)
+      param$theta=param$theta[,ind] 
+      param$phi=param$phi[ind,]
     }
     
     #store results

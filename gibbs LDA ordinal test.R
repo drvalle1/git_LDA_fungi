@@ -1,5 +1,5 @@
 rm(list=ls(all=TRUE))
-set.seed(4)
+set.seed(6)
 library('Rcpp')
 # library('MCMCpack')
 
@@ -8,10 +8,11 @@ source('gibbs LDA ordinal aux.R')
 source('gibbs LDA ordinal function.R')
 sourceCpp('LDA_ordinal_rcpp.cpp')
 
+thetas.p.lprob=read.csv('potential thetas lprob.csv',as.is=T)$x
 thetas.pot=data.matrix(read.csv('potential thetas.csv',as.is=T))
 dat=data.matrix(read.csv('fake data3.csv',as.is=T))
 ngibbs=1000
-ncomm.max=ncol(thetas.pot)
+ncomm.max=ncol(thetas.pot); ncomm.max
 prop.burn=0.9
 res=LDA_ordinal(dat=dat,ncomm.max=ncomm.max,ngibbs=ngibbs,prop.burn=prop.burn,
                 thetas.p.lprob=thetas.p.lprob,thetas.pot=thetas.pot)
@@ -30,8 +31,8 @@ theta.estim=matrix(colMeans(res$theta),nloc,ncomm.max)
 boxplot(theta.estim)
 
 #black, red, green, blue, cyan
-seq.comm=1:ncomm.max
-# seq.comm=c(1,3,5,2,4)
+seq.comm=1:5
+# seq.comm=c(4,2,1)
 theta.estim1=theta.estim[,seq.comm]
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
 for (i in 1:length(seq.comm)){
