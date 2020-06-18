@@ -1,2 +1,19 @@
 increased number of species
 made discretized thetas.true in the same way as thetas.pot
+#----------------------------------------------------------------
+My impression is that the extra groups jointly take up a large proportion and therefore make the estimates of theta poorer.
+
+For this reason, run twice:
+1) First, run with 5 to identify the true number of groups
+2) Once the approximate number of groups has been identified, run again with the "true number of groups"
+
+This approach does not work. We might have to forget estimating the number of groups altogether using the TSBP.
+
+It seems that we get approximately the same result if:
+a) we fit the model with 5 groups and try to estimate the number of groups
+b) we fit the model with true number of groups (=3) and ignore the TSBP.
+
+When using the TSBP prior, I had to modify v so that it was never equal to 1 or 0. As a result, the calculations of log prior probabilities might have been very off. Use Dirichlet(0.1) instead.
+
+
+

@@ -10,7 +10,7 @@ sourceCpp('LDA_ordinal_rcpp.cpp')
 
 thetas.p.lprob=read.csv('potential thetas lprob.csv',as.is=T)$x
 thetas.pot=data.matrix(read.csv('potential thetas.csv',as.is=T))
-dat=data.matrix(read.csv('fake data3.csv',as.is=T))
+dat=data.matrix(read.csv('fake data.csv',as.is=T))
 ngibbs=1000
 ncomm.max=ncol(thetas.pot); ncomm.max
 prop.burn=0.9

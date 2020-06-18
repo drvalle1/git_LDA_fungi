@@ -1,5 +1,5 @@
 rm(list=ls(all=TRUE))
-set.seed(9)
+set.seed(101)
 
 nloc=100
 nspp=200
@@ -80,5 +80,5 @@ for (i in 2:length(break1)){
 }
 tmp=table(y); tmp; length(tmp); length(break1)
 
-nome=paste('fake data',ncommun,'.csv',sep='')    
-write.csv(y,nome,row.names=F)    
+setwd('U:\\GIT_models\\git_LDA_fungi') 
+write.csv(y,'fake data.csv',row.names=F)    
