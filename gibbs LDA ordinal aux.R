@@ -66,7 +66,7 @@ rdirichlet1=function(alpha){
   x/soma
 }
 #-----------------------------------------------------------------------------------------------
-sample.theta=function(nloc,ncommun,thetas.pot,phi,z,nspp,thetas.p.lprob){
+sample.theta=function(nloc,ncommun,thetas.pot,phi,z,nspp){#},thetas.p.lprob){
   theta=matrix(NA,nloc,ncommun)
   media=thetas.pot%*%phi
   for (i in 1:nloc){
@@ -74,7 +74,7 @@ sample.theta=function(nloc,ncommun,thetas.pot,phi,z,nspp,thetas.p.lprob){
     # prob=-(1/2)*rowSums((ztmp-media)^2)
     # 
     prob=-(1/2)*CalcSqDiff(z=z[i,], media=media)
-    prob1=exp(prob+thetas.p.lprob)
+    prob1=exp(prob)#+thetas.p.lprob)
     prob2=prob1/sum(prob1)
     tmp=rmultinom(1,size=1,prob=prob2)
     ind=which(tmp==1)

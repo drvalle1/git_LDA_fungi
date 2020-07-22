@@ -1,5 +1,5 @@
 rm(list=ls(all=TRUE))
-set.seed(101)
+set.seed(991)
 
 nloc=100
 nspp=200
@@ -26,17 +26,15 @@ theta=theta/matrix(apply(theta,1,sum),nloc,ncommun)
 
 #match thetas to potential thetas  
 setwd('U:\\GIT_models\\git_LDA_fungi') 
-thetas.pot=data.matrix(read.csv('potential thetas.csv',as.is=T))
-ncomm.theta.pot=ncol(thetas.pot)
+nome=paste0('potential thetas',ncommun,'.csv')
+thetas.pot=data.matrix(read.csv(nome,as.is=T))
 for (i in 1:nloc){
-  theta.mat=matrix(c(theta[i,],rep(0,ncomm.theta.pot-ncommun)),
-                   nrow(thetas.pot),
-                   ncomm.theta.pot,byrow=T) #watch out for zeroes that are added
+  theta.mat=matrix(theta[i,],nrow(thetas.pot),ncommun,byrow=T) #watch out for zeroes that are added
   sse=rowSums((theta.mat-thetas.pot)^2)
   ind=which(sse==min(sse))
-  theta[i,]=thetas.pot[ind,1:ncommun]
+  theta[i,]=thetas.pot[ind,]
 }
-
+theta.true=theta
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
 for (i in 1:ncommun) lines(1:nloc,theta[,i],col=i)
 
@@ -65,6 +63,7 @@ for (i in 1:nspp){
     teste[ind1]=teste[ind1]+1
   }
 }
+teste
 
 #calculate probabilities
 medias=theta%*%phi; dim(medias)

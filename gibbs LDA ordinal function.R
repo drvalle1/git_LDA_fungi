@@ -1,4 +1,4 @@
-LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,thetas.p.lprob,thetas.pot){
+LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,thetas.pot){
   nloc=nrow(dat)
   nspp=ncol(dat)
   ncommun=ncomm.max
@@ -50,7 +50,7 @@ LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,thetas.p.lprob,thetas.pot){
   for (i in 1:ngibbs){
     print(i)
     param$theta=sample.theta(nloc=nloc,ncommun=ncommun,nspp=nspp,thetas.pot=thetas.pot,
-                             phi=param$phi,z=param$z,thetas.p.lprob=thetas.p.lprob)
+                             phi=param$phi,z=param$z)#,thetas.p.lprob=thetas.p.lprob)
     # param$theta=theta.true
     
     param$phi=sample.phi(param,ncommun,nspp)

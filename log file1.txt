@@ -14,6 +14,9 @@ a) we fit the model with 5 groups and try to estimate the number of groups
 b) we fit the model with true number of groups (=3) and ignore the TSBP.
 
 When using the TSBP prior, I had to modify v so that it was never equal to 1 or 0. As a result, the calculations of log prior probabilities might have been very off. Use Dirichlet(0.1) instead.
+#--------------------------------------------------
+June 18th
 
+Let's forget about estimating the number of groups altogether
 
-
+This code simply does not work very well
