@@ -7,15 +7,11 @@ setwd('U:\\GIT_models\\git_LDA_fungi')
 source('gibbs LDA ordinal aux.R')
 source('gibbs LDA ordinal function.R')
 sourceCpp('LDA_ordinal_rcpp.cpp')
-
-# thetas.p.lprob=read.csv('potential thetas lprob.csv',as.is=T)$x
-thetas.pot=data.matrix(read.csv('potential thetas4.csv',as.is=T))
 dat=data.matrix(read.csv('fake data.csv',as.is=T))
 ngibbs=1000
-ncomm.max=ncol(thetas.pot); ncomm.max
+ncomm.max=4
 prop.burn=0.9
-res=LDA_ordinal(dat=dat,ncomm.max=ncomm.max,ngibbs=ngibbs,prop.burn=prop.burn,
-                thetas.pot=thetas.pot)#,thetas.p.lprob=thetas.p.lprob,
+res=LDA_ordinal(dat=dat,ncomm.max=ncomm.max,ngibbs=ngibbs,prop.burn=prop.burn)
 
 #---------------------------------------------------
 nloc=nrow(dat)
@@ -31,12 +27,13 @@ theta.estim=matrix(colMeans(res$theta),nloc,ncomm.max)
 boxplot(theta.estim)
 
 #black, red, green, blue, cyan
-# seq.comm=1:4
-seq.comm=c(4,1,2,3)
+seq.comm=1:4
+# seq.comm=c(4,1,2,3)
 theta.estim1=theta.estim[,seq.comm]
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
 for (i in 1:length(seq.comm)){
   lines(1:nloc,theta.estim1[,i],col=i)
+  lines(1:nloc,theta.true[,i],col=i,lty=3)
 }
 
 #look at phi

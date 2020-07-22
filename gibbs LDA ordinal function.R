@@ -10,7 +10,8 @@ LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,thetas.pot){
   break1=seq(from=0,to=0.1,length.out=nuni-1)
   ones.nloc=rep(1,nloc)
   ones.nspp=rep(1,nspp)
-  
+  theta=matrix(1/ncommun,nloc,ncommun)
+    
   #things for MH algorithm
   n.phi=ncommun*nspp
   
@@ -38,19 +39,23 @@ LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,thetas.pot){
   
   jump1=list(break1=rep(1,nuni-1),
              break1.sum=0.2,
-             break1.mult=0.05)
+             break1.mult=0.05,
+             theta=rep(0.1,nloc))
   accept1=list(break1=rep(0,nuni-1),
                break1.sum=0,
-               break1.mult=0)
-  param=list(theta=NA,phi=phi,break1=break1,z=z)
+               break1.mult=0,
+               theta=rep(0,nloc))
+  param=list(theta=theta,phi=phi,break1=break1,z=z)
   
   #core MCMC algorithm
   options(warn=2)
   oo=1
   for (i in 1:ngibbs){
     print(i)
-    param$theta=sample.theta(nloc=nloc,ncommun=ncommun,nspp=nspp,thetas.pot=thetas.pot,
-                             phi=param$phi,z=param$z)#,thetas.p.lprob=thetas.p.lprob)
+    tmp=sample.theta(nloc=nloc,ncommun=ncommun,nspp=nspp,theta=param$theta,
+                     phi=param$phi,z=param$z,jump1=jump1$theta)
+    param$theta=tmp$theta
+    accept1$theta=accept1$theta+tmp$accept
     # param$theta=theta.true
     
     param$phi=sample.phi(param,ncommun,nspp)
@@ -78,12 +83,6 @@ LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,thetas.pot){
       k=print.adapt(accept1z=accept1,jump1z=jump1,accept.output=accept.output)
       accept1=k$accept1
       jump1=k$jump1
-      
-      #re-order results
-      med=apply(param$theta,2,median)
-      ind=order(med,decreasing=T)
-      param$theta=param$theta[,ind] 
-      param$phi=param$phi[ind,]
     }
     
     #store results

@@ -23,17 +23,6 @@ for (i in 1:ncommun){
   theta[seq3,i]=y[1:length(seq3)]
 }
 theta=theta/matrix(apply(theta,1,sum),nloc,ncommun)
-
-#match thetas to potential thetas  
-setwd('U:\\GIT_models\\git_LDA_fungi') 
-nome=paste0('potential thetas',ncommun,'.csv')
-thetas.pot=data.matrix(read.csv(nome,as.is=T))
-for (i in 1:nloc){
-  theta.mat=matrix(theta[i,],nrow(thetas.pot),ncommun,byrow=T) #watch out for zeroes that are added
-  sse=rowSums((theta.mat-thetas.pot)^2)
-  ind=which(sse==min(sse))
-  theta[i,]=thetas.pot[ind,]
-}
 theta.true=theta
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
 for (i in 1:ncommun) lines(1:nloc,theta[,i],col=i)

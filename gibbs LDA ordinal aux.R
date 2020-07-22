@@ -66,21 +66,51 @@ rdirichlet1=function(alpha){
   x/soma
 }
 #-----------------------------------------------------------------------------------------------
-sample.theta=function(nloc,ncommun,thetas.pot,phi,z,nspp){#},thetas.p.lprob){
-  theta=matrix(NA,nloc,ncommun)
-  media=thetas.pot%*%phi
-  for (i in 1:nloc){
-    # ztmp=matrix(z[i,],n.thetas.pot,nspp,byrow=T)
-    # prob=-(1/2)*rowSums((ztmp-media)^2)
-    # 
-    prob=-(1/2)*CalcSqDiff(z=z[i,], media=media)
-    prob1=exp(prob)#+thetas.p.lprob)
-    prob2=prob1/sum(prob1)
-    tmp=rmultinom(1,size=1,prob=prob2)
-    ind=which(tmp==1)
-    theta[i,]=thetas.pot[ind,]
+ldirichlet=function(alpha,x){
+  #for numerical stability
+  cond=x<0.0000001
+  x[cond]=0.0000001
+  cond=alpha<0.0000001
+  alpha[cond]=0.0000001
+  
+  #calculate dirichlet
+  p1=lgamma(rowSums(alpha))
+  p2=-rowSums(lgamma(alpha))
+  p3=rowSums((alpha-1)*log(x))
+  p1+p2+p3
+}
+#-----------------------------------------------------------------------------------------------
+sample.theta=function(nloc,theta,ncommun,phi,z,nspp,jump1){
+  jump2=matrix(1/jump1,nloc,ncommun) #bigger values of jump2==smaller variance
+  theta.old=theta
+  
+  #create theta.new
+  alpha.old.to.new=theta.old*jump2
+  theta.new=rdirichlet1(alpha=alpha.old.to.new)
+  alpha.new.to.old=theta.new*jump2
+  
+  #for numerical stability
+  cond=theta.new<0.0000001
+  theta.new[cond]=0.0000001
+  
+  #get jump probabilities
+  jump.old.to.new=ldirichlet(alpha=alpha.old.to.new,x=theta.new)
+  jump.new.to.old=ldirichlet(alpha=alpha.new.to.old,x=theta.old)
+  
+  #MH algorithm
+  media.old=theta.old%*%phi
+  media.new=theta.new%*%phi
+  llk.old=rowSums(-(1/2)*((z-media.old)^2))
+  llk.new=rowSums(-(1/2)*((z-media.new)^2))  
+  
+  ind=acceptMH.indicator(p0=llk.old+jump.old.to.new,p1=llk.new+jump.new.to.old)
+  accept=rep(0,nloc)
+  if (length(ind)!=0) {
+    theta.old[ind,]=theta.new[ind,]
+    accept[ind]=1
   }
-  theta
+  list(theta=theta.old,accept=accept)
+
 }
 #-----------------------------------------------------------------------------------------------
 sample.phi=function(param,ncommun,nspp){
