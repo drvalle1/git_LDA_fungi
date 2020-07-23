@@ -1,5 +1,5 @@
 rm(list=ls(all=TRUE))
-set.seed(6)
+set.seed(1)
 library('Rcpp')
 # library('MCMCpack')
 
@@ -11,7 +11,8 @@ dat=data.matrix(read.csv('fake data.csv',as.is=T))
 ngibbs=1000
 ncomm.max=4
 prop.burn=0.9
-res=LDA_ordinal(dat=dat,ncomm.max=ncomm.max,ngibbs=ngibbs,prop.burn=prop.burn)
+theta.prior=0.1
+res=LDA_ordinal(dat=dat,ncomm.max=ncomm.max,ngibbs=ngibbs,prop.burn=prop.burn,theta.prior=theta.prior)
 
 #---------------------------------------------------
 nloc=nrow(dat)

@@ -4,12 +4,6 @@ rmvnorm1=function(n,sigma){
   matrix(rnorm(n * ncol(sigma)), nrow = n, byrow = T) %*% R
 }
 #------------------------------------
-fix.MH=function(lo,hi,old1,new1,jump){
-  jold=pnorm(hi,mean=old1,sd=jump)-pnorm(lo,mean=old1,sd=jump)
-  jnew=pnorm(hi,mean=new1,sd=jump)-pnorm(lo,mean=new1,sd=jump)
-  log(jold)-log(jnew) #add this to pnew
-}
-#------------------------------------
 tnorm <- function(n,lo,hi,mu,sig){   #generates truncated normal variates based on cumulative normal distribution
   #normal truncated lo and hi
   
@@ -45,7 +39,6 @@ acceptMH <- function(p0,p1,x0,x1,BLOCK){   #accept for M, M-H
 }
 #-----------------------------------------------------------------------------------------------
 acceptMH.indicator <- function(p0,p1){  
-  
   nz           <- length(p0)  #no. to accept
   a    <- exp(p1 - p0)       #acceptance PR
   z    <- runif(nz,0,1)
@@ -68,10 +61,10 @@ rdirichlet1=function(alpha){
 #-----------------------------------------------------------------------------------------------
 ldirichlet=function(alpha,x){
   #for numerical stability
-  cond=x<0.0000001
-  x[cond]=0.0000001
-  cond=alpha<0.0000001
-  alpha[cond]=0.0000001
+  # cond=x<0.0000001
+  # x[cond]=0.0000001
+  # cond=alpha<0.0000001
+  # alpha[cond]=0.0000001
   
   #calculate dirichlet
   p1=lgamma(rowSums(alpha))
@@ -80,7 +73,7 @@ ldirichlet=function(alpha,x){
   p1+p2+p3
 }
 #-----------------------------------------------------------------------------------------------
-sample.theta=function(nloc,theta,ncommun,phi,z,nspp,jump1){
+sample.theta=function(nloc,theta,ncommun,phi,z,nspp,jump1,theta.prior){
   jump2=matrix(1/jump1,nloc,ncommun) #bigger values of jump2==smaller variance
   theta.old=theta
   
@@ -92,6 +85,7 @@ sample.theta=function(nloc,theta,ncommun,phi,z,nspp,jump1){
   #for numerical stability
   cond=theta.new<0.0000001
   theta.new[cond]=0.0000001
+  theta.new=theta.new/rowSums(theta.new)
   
   #get jump probabilities
   jump.old.to.new=ldirichlet(alpha=alpha.old.to.new,x=theta.new)
@@ -103,7 +97,13 @@ sample.theta=function(nloc,theta,ncommun,phi,z,nspp,jump1){
   llk.old=rowSums(-(1/2)*((z-media.old)^2))
   llk.new=rowSums(-(1/2)*((z-media.new)^2))  
   
-  ind=acceptMH.indicator(p0=llk.old+jump.old.to.new,p1=llk.new+jump.new.to.old)
+  #get prior probabilities
+  alpha.mat=matrix(theta.prior,nloc,ncommun)
+  prior.old=0#ldirichlet(alpha=alpha.mat,x=theta.old)
+  prior.new=0#ldirichlet(alpha=alpha.mat,x=theta.new)
+  
+  ind=acceptMH.indicator(p0=llk.old+jump.old.to.new+prior.old,
+                         p1=llk.new+jump.new.to.old+prior.new)
   accept=rep(0,nloc)
   if (length(ind)!=0) {
     theta.old[ind,]=theta.new[ind,]
@@ -124,79 +124,44 @@ sample.phi=function(param,ncommun,nspp){
 #-----------------------------------------------------------------------------------------------
 sample.break=function(param,jump,nuni,indicator){
   media=param$theta%*%param$phi
-  param$break1[1]=0
-  break1.old=break1.orig=param$break1
+  diffs.old=diff(param$break1)
   
-  for (i in 2:(nuni-1)){ #the first break is set to 0 for identifiability purposes
-    break1.new=break1.old
+  for (i in 1:length(diffs.old)){ #the first break is set to 0 for identifiability purposes
+    diffs.new=diffs.old
+    a1.old=1/jump[i]
+    b1.old=a1.old/diffs.old[i]
+    a1.old/(b1.old^2)
+    diffs.new[i]=rgamma(1,a1.old,b1.old)
     
-    #propose new value
-    lo1=ifelse(i==1,-Inf,break1.old[i-1])
-    hi1=ifelse(i==(nuni-1),Inf,break1.old[i+1])
-    break1.new[i]=tnorm(1,lo1,hi1,mu=break1.old[i],sig=jump[i])
+    #to avoid numerical issues
+    if (diffs.new[i]<0.0000001) diffs.new=0.0000001
     
-    #adjustment for truncated proposal
-    fix1=fix.MH(lo=lo1,hi=hi1,old1=break1.old[i],new1=break1.new[i],jump[i])
+    #get implied breakpoints
+    break1.old=c(0,cumsum(diffs.old))
+    break1.new=c(0,cumsum(diffs.new))
     
-    #get probabilities
-    ind1=indicator[[i]]
-    ind2=indicator[[i+1]]
-    pold1=pnorm(break1.old[i]-media[ind1])-pnorm(lo1-media[ind1])
-    pold2=pnorm(hi1-media[ind2])          -pnorm(break1.old[i]-media[ind2])
-    pold=sum(log(pold1))+sum(log(pold2))
+    #get loglikel
+    llikel.old=get.marg.logl(media=media,break1=break1.old,nuni=nuni,indicator=indicator)
+    llikel.new=get.marg.logl(media=media,break1=break1.new,nuni=nuni,indicator=indicator)
     
-    pnew1=pnorm(break1.new[i]-media[ind1])-pnorm(lo1-media[ind1])
-    pnew2=pnorm(hi1-media[ind2])          -pnorm(break1.new[i]-media[ind2])
-    pnew=sum(log(pnew1))+sum(log(pnew2))
+    #get priors
+    prior.old=dgamma(diffs.old[i],0.1,0.1,log=T)
+    prior.new=dgamma(diffs.new[i],0.1,0.1,log=T)
+    
+    #get jump probabilities
+    a1.new=jump[i]
+    b1.new=a1.new/diffs.new[i]
+    jump.old.to.new=dgamma(diffs.new[i],a1.old,b1.old,log=T)
+    jump.new.to.old=dgamma(diffs.old[i],a1.new,b1.new,log=T)
     
     #accept or reject
-    k=acceptMH(pold,pnew+fix1,break1.old[i],break1.new[i],F)
-    break1.old[i]=k$x
+    k=acceptMH(p0=llikel.old+prior.old+jump.old.to.new,
+               p1=llikel.new+prior.new+jump.new.to.old,
+               x0=diffs.old[i],x1=diffs.new[i],F)
+    diffs.old[i]=k$x
   }
-  list(break1=break1.old,accept=break1.old!=break1.orig)
-}
-#-----------------------------------------------------------------------------------------------
-sample.break.sum=function(param,jump,nuni,indicator){
-  media=param$theta%*%param$phi
-  param$break1[1]=0
-  break1.old=param$break1
-  
-  #lower bound avoids choosing a number that would result in param$break1[2]<0
-  lo1=-param$break1[2]
-  tmp=tnorm(1,lo=lo1,hi=Inf,mu=0,sig=jump) 
-  break1.new=break1.old+tmp
-  break1.new[1]=0
-  
-  #get probabilities
-  pold=get.marg.logl(param$theta,param$phi,break1.old,nuni,indicator)+pnorm(break1.new[2],mean=0,sd=jump,log=T)
-  pnew=get.marg.logl(param$theta,param$phi,break1.new,nuni,indicator)+pnorm(break1.old[2],mean=0,sd=jump,log=T)
-
-  #accept or reject
-  k=acceptMH(pold,pnew,0,1,F)
-  if (k$x==1) break1.old=break1.new
-  list(break1=break1.old,accept=k$x)
-}
-#-----------------------------------------------------------------------------------------------
-sample.break.mult=function(param,jump,nuni,indicator){
-  media=param$theta%*%param$phi
-  param$break1[1]=0
-  break1.old=param$break1
-  
-  #lower bound avoids choosing a number that would result in param$break1[2]<0
-  tmp=tnorm(1,lo=0,hi=Inf,mu=1,sig=jump) 
-  break1.new=break1.old*tmp
-
-  #adjustment for truncated proposal
-  fix1=dnorm(1/tmp,mean=1,sd=jump,log=T)-dnorm(tmp,mean=1,sd=jump,log=T)
-  
-  #get probabilities
-  pold=get.marg.logl(param$theta,param$phi,break1.old,nuni,indicator)
-  pnew=get.marg.logl(param$theta,param$phi,break1.new,nuni,indicator)
-  
-  #accept or reject
-  k=acceptMH(pold,pnew+fix1,0,1,F)
-  if (k$x==1) break1.old=break1.new
-  list(break1=break1.old,accept=k$x)
+  break1=c(0,cumsum(diffs.old))
+  list(break1=break1,accept=break1!=param$break1)
 }
 #-----------------------------------------------------------------------------------------------
 sample.z=function(param,nuni,indicator,n.indicator){
@@ -230,8 +195,7 @@ print.adapt = function(accept1z,jump1z,accept.output){
   return(list(jump1=jump1,accept1=accept1))
 }
 #-----------------------------------------------------------------------------------------------
-get.marg.logl=function(theta,phi,break1,nuni,indicator){
-  media=theta%*%phi
+get.marg.logl=function(media,break1,nuni,indicator){
   break2=c(-Inf,break1,Inf)
   prob=0
   for (i in 1:nuni){
@@ -242,3 +206,4 @@ get.marg.logl=function(theta,phi,break1,nuni,indicator){
   }
   prob
 }
+
