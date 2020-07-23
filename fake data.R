@@ -1,9 +1,9 @@
 rm(list=ls(all=TRUE))
-set.seed(991)
+set.seed(291)
 
 nloc=100
 nspp=200
-ncommun=4
+ncommun=5
 base=floor(nloc/(ncommun-1))
 
 #generate thetas
@@ -23,6 +23,12 @@ for (i in 1:ncommun){
   theta[seq3,i]=y[1:length(seq3)]
 }
 theta=theta/matrix(apply(theta,1,sum),nloc,ncommun)
+
+#eliminate zeroes
+cond=theta<0.000001
+theta[cond]=0.000001
+theta=theta/rowSums(theta)
+
 theta.true=theta
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
 for (i in 1:ncommun) lines(1:nloc,theta[,i],col=i)

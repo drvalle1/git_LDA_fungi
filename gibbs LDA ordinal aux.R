@@ -46,11 +46,6 @@ acceptMH.indicator <- function(p0,p1){
   
 }
 #-----------------------------------------------------------------------------------------------
-get.logl=function(theta,phi,z){
-  media=theta%*%phi
-  dnorm(z,media,sd=1,log=T)
-}
-#-----------------------------------------------------------------------------------------------
 rdirichlet1=function(alpha){
   nrow1=nrow(alpha)
   ncol1=ncol(alpha)
@@ -60,12 +55,6 @@ rdirichlet1=function(alpha){
 }
 #-----------------------------------------------------------------------------------------------
 ldirichlet=function(alpha,x){
-  #for numerical stability
-  # cond=x<0.0000001
-  # x[cond]=0.0000001
-  # cond=alpha<0.0000001
-  # alpha[cond]=0.0000001
-  
   #calculate dirichlet
   p1=lgamma(rowSums(alpha))
   p2=-rowSums(lgamma(alpha))
@@ -73,7 +62,7 @@ ldirichlet=function(alpha,x){
   p1+p2+p3
 }
 #-----------------------------------------------------------------------------------------------
-sample.theta=function(nloc,theta,ncommun,phi,z,nspp,jump1,theta.prior){
+sample.theta=function(nloc,theta,ncommun,phi,nspp,jump1,break1,nuni,indicator){
   jump2=matrix(1/jump1,nloc,ncommun) #bigger values of jump2==smaller variance
   theta.old=theta
   
@@ -94,11 +83,15 @@ sample.theta=function(nloc,theta,ncommun,phi,z,nspp,jump1,theta.prior){
   #MH algorithm
   media.old=theta.old%*%phi
   media.new=theta.new%*%phi
-  llk.old=rowSums(-(1/2)*((z-media.old)^2))
-  llk.new=rowSums(-(1/2)*((z-media.new)^2))  
   
+  #get loglikel
+  llk.old=rowSums(get.marg.logl(media=media.old,break1=break1,nuni=nuni,indicator=indicator,
+                                nloc=nloc,nspp=nspp))
+  llk.new=rowSums(get.marg.logl(media=media.new,break1=break1,nuni=nuni,indicator=indicator,
+                                nloc=nloc,nspp=nspp))
+
   #get prior probabilities
-  alpha.mat=matrix(theta.prior,nloc,ncommun)
+  # alpha.mat=matrix(theta.prior,nloc,ncommun)
   prior.old=0#ldirichlet(alpha=alpha.mat,x=theta.old)
   prior.new=0#ldirichlet(alpha=alpha.mat,x=theta.new)
   
@@ -122,7 +115,7 @@ sample.phi=function(param,ncommun,nspp){
   media+w
 }
 #-----------------------------------------------------------------------------------------------
-sample.break=function(param,jump,nuni,indicator){
+sample.break=function(param,jump,nuni,indicator,nloc,nspp){
   media=param$theta%*%param$phi
   diffs.old=diff(param$break1)
   
@@ -141,8 +134,10 @@ sample.break=function(param,jump,nuni,indicator){
     break1.new=c(0,cumsum(diffs.new))
     
     #get loglikel
-    llikel.old=get.marg.logl(media=media,break1=break1.old,nuni=nuni,indicator=indicator)
-    llikel.new=get.marg.logl(media=media,break1=break1.new,nuni=nuni,indicator=indicator)
+    llikel.old=sum(get.marg.logl(media=media,break1=break1.old,nuni=nuni,indicator=indicator,
+                                 nloc=nloc,nspp=nspp))
+    llikel.new=sum(get.marg.logl(media=media,break1=break1.new,nuni=nuni,indicator=indicator,
+                                 nloc=nloc,nspp=nspp))
     
     #get priors
     prior.old=dgamma(diffs.old[i],0.1,0.1,log=T)
@@ -195,14 +190,14 @@ print.adapt = function(accept1z,jump1z,accept.output){
   return(list(jump1=jump1,accept1=accept1))
 }
 #-----------------------------------------------------------------------------------------------
-get.marg.logl=function(media,break1,nuni,indicator){
+get.marg.logl=function(media,break1,nuni,indicator,nloc,nspp){
   break2=c(-Inf,break1,Inf)
-  prob=0
+  prob=matrix(NA,nloc,nspp)
   for (i in 1:nuni){
     #get probabilities
     ind1=indicator[[i]]
     tmp=pnorm(break2[i+1]-media[ind1])-pnorm(break2[i]-media[ind1])
-    prob=prob+sum(log(tmp))
+    prob[ind1]=log(tmp)
   }
   prob
 }

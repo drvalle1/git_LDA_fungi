@@ -1,7 +1,7 @@
-LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,theta.prior){
+LDA_ordinal=function(dat,ncomm,ngibbs,prop.burn){
   nloc=nrow(dat)
   nspp=ncol(dat)
-  ncommun=ncomm.max
+  ncommun=ncomm
   uni=sort(unique(as.numeric(dat)))
   nuni=length(uni)
   
@@ -51,13 +51,14 @@ LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,theta.prior){
     print(i)
     
     #sample breaks
-    tmp=sample.break(param=param,jump=jump1$break1,nuni=nuni,indicator=indicator)
+    tmp=sample.break(param=param,jump=jump1$break1,nuni=nuni,indicator=indicator,nloc=nloc,nspp=nspp)
     accept1$break1=accept1$break1+tmp$accept
     param$break1=tmp$break1
     # param$break1=break1.true[-c(1,length(break1.true))]    
     
     tmp=sample.theta(nloc=nloc,ncommun=ncommun,nspp=nspp,theta=param$theta,
-                     phi=param$phi,z=param$z,jump1=jump1$theta,theta.prior=theta.prior)
+                     phi=param$phi,jump1=jump1$theta,break1=param$break1,nuni=nuni,
+                     indicator=indicator)
     param$theta=tmp$theta
     accept1$theta=accept1$theta+tmp$accept
     # param$theta=theta.true
@@ -77,7 +78,8 @@ LDA_ordinal=function(dat,ncomm.max,ngibbs,prop.burn,theta.prior){
     
     #store results
     media=param$theta%*%param$phi
-    vec.logl[i]=get.marg.logl(media=media,break1=param$break1,nuni=nuni,indicator=indicator)
+    vec.logl[i]=sum(get.marg.logl(media=media,break1=param$break1,nuni=nuni,indicator=indicator,
+                                  nloc=nloc,nspp=nspp))
     
     if (i>(ngibbs*prop.burn)){
       vec.theta[oo,]=param$theta
