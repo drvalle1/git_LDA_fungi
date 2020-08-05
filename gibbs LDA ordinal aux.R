@@ -121,13 +121,10 @@ sample.break=function(param,jump,nuni,indicator,nloc,nspp){
   
   for (i in 1:length(diffs.old)){ #the first break is set to 0 for identifiability purposes
     diffs.new=diffs.old
-    a1.old=1/jump[i]
-    b1.old=a1.old/diffs.old[i]
-    a1.old/(b1.old^2)
-    diffs.new[i]=rgamma(1,a1.old,b1.old)
+    diffs.new[i]=abs(rnorm(1,mean=diffs.old[i],sd=jump[i])) #reflect off of zero
     
     #to avoid numerical issues
-    if (diffs.new[i]<0.0000001) diffs.new=0.0000001
+    if (diffs.new[i]<0.0000001) diffs.new[i]=0.0000001
     
     #get implied breakpoints
     break1.old=c(0,cumsum(diffs.old))
@@ -140,18 +137,12 @@ sample.break=function(param,jump,nuni,indicator,nloc,nspp){
                                  nloc=nloc,nspp=nspp))
     
     #get priors
-    prior.old=dgamma(diffs.old[i],0.1,0.1,log=T)
-    prior.new=dgamma(diffs.new[i],0.1,0.1,log=T)
-    
-    #get jump probabilities
-    a1.new=jump[i]
-    b1.new=a1.new/diffs.new[i]
-    jump.old.to.new=dgamma(diffs.new[i],a1.old,b1.old,log=T)
-    jump.new.to.old=dgamma(diffs.old[i],a1.new,b1.new,log=T)
+    prior.old=0 #uniform prior
+    prior.new=0 #uniform prior
     
     #accept or reject
-    k=acceptMH(p0=llikel.old+prior.old+jump.old.to.new,
-               p1=llikel.new+prior.new+jump.new.to.old,
+    k=acceptMH(p0=llikel.old+prior.old,
+               p1=llikel.new+prior.new,
                x0=diffs.old[i],x1=diffs.new[i],F)
     diffs.old[i]=k$x
   }

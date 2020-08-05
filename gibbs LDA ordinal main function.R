@@ -7,7 +7,7 @@ LDA_ordinal=function(dat,ncomm,ngibbs,prop.burn){
   
   #set initial values
   phi=matrix(0,ncommun,nspp)
-  break1=seq(from=0,to=10,length.out=nuni-1)
+  break1=seq(from=0,to=1,length.out=nuni-1)
   ones.nloc=rep(1,nloc)
   ones.nspp=rep(1,nspp)
   theta=matrix(1/ncommun,nloc,ncommun)
@@ -20,7 +20,7 @@ LDA_ordinal=function(dat,ncomm,ngibbs,prop.burn){
   hi.prob=1-lo.prob
   indicator=list()
   n.indicator=rep(NA,nuni)
-  break2=c(-1,break1,11)
+  break2=c(-0.1,break1,1.1)
   z=matrix(NA,nloc,nspp)
   for (i in 1:nuni){
     cond=dat==uni[i]
@@ -38,7 +38,7 @@ LDA_ordinal=function(dat,ncomm,ngibbs,prop.burn){
   vec.break1=matrix(NA,nkeep,nuni-1)
   vec.logl=matrix(NA,ngibbs,1)
   
-  jump1=list(break1=rep(1,nuni-1),
+  jump1=list(break1=rep(0.01,nuni-1),
              theta=rep(0.1,nloc))
   accept1=list(break1=rep(0,nuni-1),
                theta=rep(0,nloc))

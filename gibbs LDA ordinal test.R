@@ -8,9 +8,9 @@ source('gibbs LDA ordinal aux.R')
 source('gibbs LDA ordinal main function.R')
 sourceCpp('LDA_ordinal_rcpp.cpp')
 dat=data.matrix(read.csv('fake data.csv',as.is=T))
-ngibbs=2000
+ngibbs=10000
 ncomm=5
-prop.burn=0.9
+prop.burn=0
 res=LDA_ordinal(dat=dat,ncomm=ncomm,ngibbs=ngibbs,prop.burn=prop.burn)
 
 #---------------------------------------------------
@@ -28,7 +28,7 @@ boxplot(theta.estim)
 
 #black, red, green, blue, cyan
 # seq.comm=1:5
-seq.comm=c(1,3,4,5,2)
+seq.comm=c(3,4,1,2,5)
 theta.estim1=theta.estim[,seq.comm]
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
 for (i in 1:length(seq.comm)){
@@ -48,3 +48,7 @@ break.estim=colMeans(res$break1)
 rango=range(break.estim,break2)
 plot(break2,break.estim,xlim=rango,ylim=rango)
 lines(rango,rango,col='red')
+
+#look to see if breaks are moving
+plot(res$break1[,2],type='l')
+plot(res$break1[,4],type='l')
