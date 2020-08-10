@@ -192,4 +192,48 @@ get.marg.logl=function(media,break1,nuni,indicator,nloc,nspp){
   }
   prob
 }
+#----------------------------------------------------------------------------
+# sample.break.sum=function(param,jump,nuni,indicator,nloc,nspp){
+#   media=param$theta%*%param$phi
+#   param$break1[1]=0
+#   break1.old=param$break1
+#   
+#   #lower bound avoids choosing a number that would result in param$break1[2]<0
+#   lo1=-param$break1[2]
+#   tmp=tnorm(1,lo=lo1,hi=Inf,mu=0,sig=jump) 
+#   break1.new=break1.old+tmp
+#   break1.new[1]=0
+#   
+#   #get probabilities
+#   pold=sum(get.marg.logl(media=media,break1=break1.old,nuni=nuni,indicator=indicator,nloc=nloc,nspp=nspp))+
+#     pnorm(break1.new[2],mean=0,sd=jump,log=T)
+#   pnew=sum(get.marg.logl(media=media,break1=break1.new,nuni=nuni,indicator=indicator,nloc=nloc,nspp=nspp))+
+#     pnorm(break1.old[2],mean=0,sd=jump,log=T)
+#   
+#   #accept or reject
+#   k=acceptMH(pold,pnew,0,1,F)
+#   if (k$x==1) break1.old=break1.new
+#   list(break1=break1.old,accept=k$x)
+# }
+#-----------------------------------------------------------------------------------------------
+sample.break.mult=function(param,jump,nuni,indicator,nloc,nspp){
+  media=param$theta%*%param$phi
+  param$break1[1]=0
+  break1.old=param$break1
+  
+  #lower bound avoids choosing a number that would result in param$break1[2]<0
+  tmp=tnorm(1,lo=0,hi=Inf,mu=1,sig=jump) 
+  break1.new=break1.old*tmp
+  
+  #adjustment for truncated proposal
+  fix1=dnorm(1/tmp,mean=1,sd=jump,log=T)-dnorm(tmp,mean=1,sd=jump,log=T)
+  
+  #get probabilities
+  pold=sum(get.marg.logl(media=media,break1=break1.old,nuni=nuni,indicator=indicator,nloc=nloc,nspp=nspp))
+  pnew=sum(get.marg.logl(media=media,break1=break1.new,nuni=nuni,indicator=indicator,nloc=nloc,nspp=nspp))
 
+  #accept or reject
+  k=acceptMH(pold,pnew+fix1,0,1,F)
+  if (k$x==1) break1.old=break1.new
+  list(break1=break1.old,accept=k$x)
+}

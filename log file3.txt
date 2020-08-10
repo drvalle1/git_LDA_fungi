@@ -1,0 +1,9 @@
+Aug. 10 
+
+in fake data, I was generating phi with mu.large=6 and mu.small=2. 
+
+The problem is that my prior for phi is N(0,1). 
+
+As a result, I would consistently underestimate phi, impacting my break estimates.
+
+For this reason, I have changed the script for fake data to generate phi with mu.large=2 and mu.small=-0.5. I have generate phi from rnorm with sd=0.2 instead of sd=1 to ensure that groups are substantially distinct

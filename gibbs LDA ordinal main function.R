@@ -38,10 +38,8 @@ LDA_ordinal=function(dat,ncomm,ngibbs,prop.burn){
   vec.break1=matrix(NA,nkeep,nuni-1)
   vec.logl=matrix(NA,ngibbs,1)
   
-  jump1=list(break1=rep(0.01,nuni-1),
-             theta=rep(0.1,nloc))
-  accept1=list(break1=rep(0,nuni-1),
-               theta=rep(0,nloc))
+  jump1=list(break1=rep(0.01,nuni-1),theta=rep(0.03,nloc),break1.mult=0.01)
+  accept1=list(break1=rep(0,nuni-1),theta=rep(0,nloc),break1.mult=0)
   param=list(theta=theta,phi=phi,break1=break1,z=z)
   
   #core MCMC algorithm
@@ -55,6 +53,10 @@ LDA_ordinal=function(dat,ncomm,ngibbs,prop.burn){
     accept1$break1=accept1$break1+tmp$accept
     param$break1=tmp$break1
     # param$break1=break1.true[-c(1,length(break1.true))]    
+    
+    tmp=sample.break.mult(param=param,jump=jump1$break1.mult,nuni=nuni,indicator=indicator,nloc=nloc,nspp=nspp)
+    accept1$break1.mult=accept1$break1.mult+tmp$accept
+    param$break1=tmp$break1
     
     tmp=sample.theta(nloc=nloc,ncommun=ncommun,nspp=nspp,theta=param$theta,
                      phi=param$phi,jump1=jump1$theta,break1=param$break1,nuni=nuni,

@@ -1,2 +1,3 @@
-estimate thetas using get.marg.logl (i.e., ignore z's)
-things were working better before I set theta.prior=0.1 (i.e., theta.prior=1)
+modelo uren: break points don't mix well
+
+I think that part of the problem is that both theta and breakpoints are sampled using a MH approach. 

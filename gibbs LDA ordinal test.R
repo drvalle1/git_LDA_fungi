@@ -28,7 +28,7 @@ boxplot(theta.estim)
 
 #black, red, green, blue, cyan
 # seq.comm=1:5
-seq.comm=c(3,4,1,2,5)
+seq.comm=c(1,2,5,4,3)
 theta.estim1=theta.estim[,seq.comm]
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
 for (i in 1:length(seq.comm)){
