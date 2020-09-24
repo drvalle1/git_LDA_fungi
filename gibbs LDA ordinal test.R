@@ -9,10 +9,10 @@ source('gibbs LDA ordinal main function.R')
 sourceCpp('LDA_ordinal_rcpp.cpp')
 dat=data.matrix(read.csv('fake data.csv',as.is=T))
 ngibbs=10000
-ncomm=5
-prop.burn=0
-res=LDA_ordinal(dat=dat,ncomm=ncomm,ngibbs=ngibbs,prop.burn=prop.burn)
-
+ncomm=10
+prop.burn=0.5
+gamma1=0.1#0.01
+res=LDA_ordinal(dat=dat,ncomm=ncomm,ngibbs=ngibbs,prop.burn=prop.burn,gamma1=gamma1)
 #---------------------------------------------------
 nloc=nrow(dat)
 nspp=ncol(dat)
@@ -28,7 +28,7 @@ boxplot(theta.estim)
 
 #black, red, green, blue, cyan
 # seq.comm=1:5
-seq.comm=c(1,2,5,4,3)
+seq.comm=c(3,4,5,1,2)
 theta.estim1=theta.estim[,seq.comm]
 plot(NA,NA,xlim=c(0,nloc),ylim=c(0,1))
 for (i in 1:length(seq.comm)){

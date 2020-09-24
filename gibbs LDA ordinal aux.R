@@ -62,48 +62,58 @@ ldirichlet=function(alpha,x){
   p1+p2+p3
 }
 #-----------------------------------------------------------------------------------------------
-sample.theta=function(nloc,theta,ncommun,phi,nspp,jump1,break1,nuni,indicator){
-  jump2=matrix(1/jump1,nloc,ncommun) #bigger values of jump2==smaller variance
-  theta.old=theta
-  
-  #create theta.new
-  alpha.old.to.new=theta.old*jump2
-  theta.new=rdirichlet1(alpha=alpha.old.to.new)
-  alpha.new.to.old=theta.new*jump2
-  
-  #for numerical stability
-  cond=theta.new<0.0000001
-  theta.new[cond]=0.0000001
-  theta.new=theta.new/rowSums(theta.new)
-  
-  #get jump probabilities
-  jump.old.to.new=ldirichlet(alpha=alpha.old.to.new,x=theta.new)
-  jump.new.to.old=ldirichlet(alpha=alpha.new.to.old,x=theta.old)
-  
-  #MH algorithm
-  media.old=theta.old%*%phi
-  media.new=theta.new%*%phi
-  
-  #get loglikel
-  llk.old=rowSums(get.marg.logl(media=media.old,break1=break1,nuni=nuni,indicator=indicator,
-                                nloc=nloc,nspp=nspp))
-  llk.new=rowSums(get.marg.logl(media=media.new,break1=break1,nuni=nuni,indicator=indicator,
-                                nloc=nloc,nspp=nspp))
-
-  #get prior probabilities
-  # alpha.mat=matrix(theta.prior,nloc,ncommun)
-  prior.old=0#ldirichlet(alpha=alpha.mat,x=theta.old)
-  prior.new=0#ldirichlet(alpha=alpha.mat,x=theta.new)
-  
-  ind=acceptMH.indicator(p0=llk.old+jump.old.to.new+prior.old,
-                         p1=llk.new+jump.new.to.old+prior.new)
-  accept=rep(0,nloc)
-  if (length(ind)!=0) {
-    theta.old[ind,]=theta.new[ind,]
-    accept[ind]=1
+v.to.theta=function(vmat,ncommun,nloc){
+  theta=matrix(NA,nloc,ncommun)
+  tmp=rep(1,nloc)
+  for (j in 1:(ncommun-1)){
+    theta[,j]=vmat[,j]*tmp
+    tmp=tmp*(1-vmat[,j])
   }
-  list(theta=theta.old,accept=accept)
+  theta[,ncommun]=tmp
+  # rowSums(theta)
+  theta
+}
 
+#------------------------------------------------------------------------------
+theta.to.v=function(theta,nloc,ncommun){
+  vmat=matrix(NA,nloc,ncommun-1)
+  tmp=rep(1,nloc)  
+  for (i in 1:(ncommun-1)){
+    vmat[,i]=theta[,i]/tmp
+    tmp=tmp*(1-vmat[,i])
+  }
+  vmat
+}
+#------------------------------------------------------------------------------
+sample.theta=function(nloc,vmat,ncommun,phi,nspp,jump1,break1,nuni,indicator,gamma1){
+  vorig=vold=vmat
+  tmp=tnorm(nloc*(ncommun-1),lo=0,hi=1,mu=vold,sig=jump1)
+  v.prop=matrix(tmp,nloc,ncommun-1)
+  tmp=(pnorm(1,mean=vold,sd=jump1)  -pnorm(0,mean=vold,sd=jump1))/
+      (pnorm(1,mean=v.prop,sd=jump1)-pnorm(0,mean=v.prop,sd=jump1))
+  lprob.propose=matrix(log(tmp),nloc,ncommun-1)
+  
+  #get priors
+  lprob.prior.old=dbeta(vold,1,gamma1,log=T)
+  lprob.prior.new=dbeta(v.prop,1,gamma1,log=T)
+
+  for (j in 1:(ncommun-1)){
+    vnew=vold
+    vnew[,j]=v.prop[,j]
+    theta.old=v.to.theta(vmat=vold,nloc=nloc,ncommun=ncommun)
+    theta.new=v.to.theta(vmat=vnew,nloc=nloc,ncommun=ncommun)
+    llk.old=rowSums(get.marg.logl(media=theta.old%*%phi,break1=break1,nuni=nuni,indicator=indicator,
+                                  nloc=nloc,nspp=nspp))
+    llk.new=rowSums(get.marg.logl(media=theta.new%*%phi,break1=break1,nuni=nuni,indicator=indicator,
+                                  nloc=nloc,nspp=nspp))
+    pold=llk.old+lprob.prior.old[,j]
+    pnew=llk.new+lprob.prior.new[,j]+lprob.propose[,j]
+    
+    k=acceptMH(p0=pold,p1=pnew,x0=vold[,j],x1=vnew[,j],BLOCK=F)
+    vold[,j]=k$x
+  }
+  theta=v.to.theta(vmat=vold,nloc=nloc,ncommun=ncommun)
+  list(vmat=vold,accept=vold!=vorig,theta=theta)
 }
 #-----------------------------------------------------------------------------------------------
 sample.phi=function(param,ncommun,nspp){

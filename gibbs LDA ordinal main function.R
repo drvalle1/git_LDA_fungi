@@ -1,4 +1,4 @@
-LDA_ordinal=function(dat,ncomm,ngibbs,prop.burn){
+LDA_ordinal=function(dat,ncomm,ngibbs,prop.burn,gamma1){
   nloc=nrow(dat)
   nspp=ncol(dat)
   ncommun=ncomm
@@ -11,7 +11,9 @@ LDA_ordinal=function(dat,ncomm,ngibbs,prop.burn){
   ones.nloc=rep(1,nloc)
   ones.nspp=rep(1,nspp)
   theta=matrix(1/ncommun,nloc,ncommun)
-    
+  vmat=theta.to.v(theta=theta,nloc=nloc,ncommun=ncommun)
+  # theta.tmp=v.to.theta(vmat=vmat,nloc=nloc,ncommun=ncommun)
+  
   #things for MH algorithm
   n.phi=ncommun*nspp
   
@@ -38,9 +40,9 @@ LDA_ordinal=function(dat,ncomm,ngibbs,prop.burn){
   vec.break1=matrix(NA,nkeep,nuni-1)
   vec.logl=matrix(NA,ngibbs,1)
   
-  jump1=list(break1=rep(0.01,nuni-1),theta=rep(0.03,nloc),break1.mult=0.01)
-  accept1=list(break1=rep(0,nuni-1),theta=rep(0,nloc),break1.mult=0)
-  param=list(theta=theta,phi=phi,break1=break1,z=z)
+  jump1=list(break1=rep(0.01,nuni-1),vmat=matrix(0.2,nloc,ncommun-1),break1.mult=0.01)
+  accept1=list(break1=rep(0,nuni-1),vmat=matrix(0,nloc,ncommun-1),break1.mult=0)
+  param=list(theta=theta,vmat=vmat,phi=phi,break1=break1,z=z)
   
   #core MCMC algorithm
   options(warn=2)
@@ -58,11 +60,12 @@ LDA_ordinal=function(dat,ncomm,ngibbs,prop.burn){
     accept1$break1.mult=accept1$break1.mult+tmp$accept
     param$break1=tmp$break1
     
-    tmp=sample.theta(nloc=nloc,ncommun=ncommun,nspp=nspp,theta=param$theta,
-                     phi=param$phi,jump1=jump1$theta,break1=param$break1,nuni=nuni,
-                     indicator=indicator)
+    tmp=sample.theta(nloc=nloc,ncommun=ncommun,nspp=nspp,vmat=param$vmat,
+                     phi=param$phi,jump1=jump1$vmat,break1=param$break1,nuni=nuni,
+                     indicator=indicator,gamma1=gamma1)
     param$theta=tmp$theta
-    accept1$theta=accept1$theta+tmp$accept
+    param$vmat=param$vmat
+    accept1$vmat=accept1$vmat+tmp$accept
     # param$theta=theta.true
     
     param$phi=sample.phi(param,ncommun,nspp)
@@ -71,11 +74,22 @@ LDA_ordinal=function(dat,ncomm,ngibbs,prop.burn){
     param$z=sample.z(param,nuni,indicator,n.indicator)
     # param$z=z.true
     
-    if (i%%accept.output==0 & i<(ngibbs/2)){
+    if (i%%accept.output==0 & i<ngibbs*prop.burn){
       #adaptive MH
       k=print.adapt(accept1z=accept1,jump1z=jump1,accept.output=accept.output)
       accept1=k$accept1
       jump1=k$jump1
+    }
+    
+    #re-shuffle groups
+    if (i%%200==0 & i<ngibbs*prop.burn){
+      med=apply(param$theta,2,median)
+      ind=order(med,decreasing=T)
+      param$phi=param$phi[ind,]
+      param$theta=param$theta[,ind]
+      param$vmat=theta.to.v(theta=param$theta,nloc=nloc,ncommun=ncommun)
+      boxplot(param$theta,main=i)
+      jump1$vmat[]=0.05
     }
     
     #store results
